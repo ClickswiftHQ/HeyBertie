@@ -1,0 +1,8 @@
+title: 'Knowledge Base'
+template: knowledge_base/show
+layout: layout
+revisions: false
+sort_dir: asc
+route: '/knowledge-base/{slug}'
+inject:
+  protect: super_admin

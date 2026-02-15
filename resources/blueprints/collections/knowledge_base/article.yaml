@@ -1,0 +1,19 @@
+title: Article
+tabs:
+  main:
+    display: Main
+    sections:
+      -
+        fields:
+          -
+            handle: title
+            field:
+              type: text
+              required: true
+              display: Title
+          -
+            handle: content
+            field:
+              type: markdown
+              required: true
+              display: Content

@@ -1,0 +1,22 @@
+---
+title: Knowledge Base
+---
+<div class="mx-auto max-w-3xl px-4 py-12">
+    <h1 class="mb-8 text-3xl font-semibold">Knowledge Base</h1>
+
+    {{ collection:knowledge_base }}
+        <ul class="space-y-4">
+            {{ entries }}
+                <li>
+                    <a href="{{ url }}" class="block rounded-md border border-border p-4 transition hover:bg-secondary">
+                        <h2 class="text-lg font-medium">{{ title }}</h2>
+                    </a>
+                </li>
+            {{ /entries }}
+        </ul>
+
+        {{ if no_results }}
+            <p class="text-muted-foreground">No articles found.</p>
+        {{ /if }}
+    {{ /collection:knowledge_base }}
+</div>
