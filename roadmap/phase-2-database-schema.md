@@ -37,6 +37,21 @@ User (person)
 - **Solo:** 1 location, booking calendar, CRM, payments
 - **Salon:** 5 staff calendars, 3 locations (+ £15/month each), loyalty program
 
+### 5. Lookup Tables Replace Enums (Phase 2b)
+- `subscription_tier`, `subscription_status`, and `business_user.role` enum columns replaced with FK references to lookup tables (`subscription_tiers`, `subscription_statuses`, `business_roles`)
+- Enables adding/renaming tiers without migrations; stores pricing/limits on the tier row
+
+### 6. Pets Belong to Users, Not Customers (Phase 2b)
+- Pet data moved from `customers` table to a dedicated `pets` table with `user_id` FK
+- Taxonomy tables (`species`, `size_categories`, `breeds`) normalise pet attributes
+- Enables cross-business pet data — same pet recognised when user visits different groomers
+
+### 7. Stub Users for Walk-in Customers (Phase 2b)
+- `customers.user_id` is NOT NULL — every customer record links to a real `users` row
+- Walk-in customers who haven't registered get a stub `User` record with `is_registered = false`
+- When a stub user later signs up, their account is upgraded and all history is already linked
+- **Pending:** `CustomerRegistrationService` to handle find-or-create-user flow and data consent (see Phase 2c in ROADMAP.md)
+
 ---
 
 ## Features Overview
@@ -188,52 +203,52 @@ Schema::create('business_user', function (Blueprint $table) {
 ### Tasks for Feature 1
 
 #### Task 1.1: Create Businesses Migration
-- [ ] Create migration file: `create_businesses_table.php`
-- [ ] Define all columns as specified above
-- [ ] Add indexes on `handle`, `owner_user_id`, `subscription_tier`
-- [ ] Add unique constraint on `handle`
+- [x] Create migration file: `create_businesses_table.php`
+- [x] Define all columns as specified above
+- [x] Add indexes on `handle`, `owner_user_id`, `subscription_tier`
+- [x] Add unique constraint on `handle`
 
 #### Task 1.2: Update Users Table
-- [ ] Create migration: `add_role_to_users_table.php`
-- [ ] Add `role` enum column if not exists
-- [ ] Add index on `role`
+- [x] Create migration: `add_role_to_users_table.php`
+- [x] Add `role` enum column if not exists
+- [x] Add index on `role`
 
 #### Task 1.3: Create Business_User Pivot Migration
-- [ ] Create migration: `create_business_user_table.php`
-- [ ] Define pivot structure with role
-- [ ] Add unique constraint on `business_id` + `user_id` pair
+- [x] Create migration: `create_business_user_table.php`
+- [x] Define pivot structure with role
+- [x] Add unique constraint on `business_id` + `user_id` pair
 
 #### Task 1.4: Create Business Model
-- [ ] Create `app/Models/Business.php`
-- [ ] Define fillable/guarded properties
-- [ ] Add casts: `settings` => `array`, `verified_at` => `datetime`, `trial_ends_at` => `datetime`
-- [ ] Define relationships:
+- [x] Create `app/Models/Business.php`
+- [x] Define fillable/guarded properties
+- [x] Add casts: `settings` => `array`, `verified_at` => `datetime`, `trial_ends_at` => `datetime`
+- [x] Define relationships:
   - `belongsTo(User::class, 'owner_user_id')`
   - `belongsToMany(User::class)->using(BusinessUser::class)` (staff)
   - `hasMany(Location::class)`
   - `hasMany(Service::class)`
   - `hasMany(Booking::class)`
-- [ ] Add scopes: `verified()`, `active()`, `onTrial()`, `tier(string $tier)`
-- [ ] Add methods: `isOwner(User $user)`, `hasStaff(User $user)`, `canAccess(User $user)`
+- [x] Add scopes: `verified()`, `active()`, `onTrial()`, `tier(string $tier)`
+- [x] Add methods: `isOwner(User $user)`, `hasStaff(User $user)`, `canAccess(User $user)`
 
 #### Task 1.5: Update User Model
-- [ ] Add relationship: `ownedBusinesses()` - businesses where user is owner
-- [ ] Add relationship: `businesses()` - all businesses user has access to (via pivot)
-- [ ] Add method: `hasAccessToBusiness(Business $business)`
+- [x] Add relationship: `ownedBusinesses()` - businesses where user is owner
+- [x] Add relationship: `businesses()` - all businesses user has access to (via pivot)
+- [x] Add method: `hasAccessToBusiness(Business $business)`
 
 #### Task 1.6: Create Handle Validation Rule
-- [ ] Create `app/Rules/ValidHandle.php` validation rule
-- [ ] Check format: lowercase, alphanumeric + hyphens, 3-30 chars
-- [ ] Check against reserved words list
-- [ ] Check uniqueness in businesses table
-- [ ] Return helpful error messages with suggestions
+- [x] Create `app/Rules/ValidHandle.php` validation rule
+- [x] Check format: lowercase, alphanumeric + hyphens, 3-30 chars
+- [x] Check against reserved words list
+- [x] Check uniqueness in businesses table
+- [x] Return helpful error messages with suggestions
 
 #### Task 1.7: Create Seeders (Development Data)
-- [ ] Create `BusinessSeeder.php`
-- [ ] Create 5 demo businesses with realistic data
-- [ ] Assign to different users (mix of sole traders and teams)
-- [ ] Mix of tiers: 2 free, 2 solo, 1 salon
-- [ ] Mix of verification statuses
+- [x] Create `BusinessSeeder.php`
+- [x] Create 5 demo businesses with realistic data
+- [x] Assign to different users (mix of sole traders and teams)
+- [x] Mix of tiers: 2 free, 2 solo, 1 salon
+- [x] Mix of verification statuses
 
 ---
 
@@ -281,31 +296,31 @@ Schema::create('handle_changes', function (Blueprint $table) {
 ### Tasks for Feature 2
 
 #### Task 2.1: Create Handle_Changes Migration
-- [ ] Create migration: `create_handle_changes_table.php`
-- [ ] Define audit trail structure
-- [ ] Add index on `old_handle` for redirect lookups
+- [x] Create migration: `create_handle_changes_table.php`
+- [x] Define audit trail structure
+- [x] Add index on `old_handle` for redirect lookups
 
 #### Task 2.2: Create HandleChange Model
-- [ ] Create `app/Models/HandleChange.php`
-- [ ] Define relationship to Business
-- [ ] Add scope: `forHandle(string $handle)`
+- [x] Create `app/Models/HandleChange.php`
+- [x] Define relationship to Business
+- [x] Add scope: `forHandle(string $handle)`
 
 #### Task 2.3: Implement Handle Change Logic
-- [ ] Create `app/Services/HandleService.php`
-- [ ] Method: `changeHandle(Business $business, string $newHandle)`
+- [x] Create `app/Services/HandleService.php`
+- [x] Method: `changeHandle(Business $business, string $newHandle)`
   - Check rate limit (max 1 change per 30 days)
   - Validate new handle
   - Create audit record in handle_changes
   - Update business handle
-- [ ] Method: `suggestAlternatives(string $desiredHandle)` - return 5 available alternatives
+- [x] Method: `suggestAlternatives(string $desiredHandle)` - return 5 available alternatives
 
-#### Task 2.4: Implement Redirect Middleware
+#### Task 2.4: Implement Redirect Middleware *(deferred to Phase 4)*
 - [ ] Create `app/Http/Middleware/HandleRedirect.php`
 - [ ] Check if handle exists in handle_changes (old handles)
 - [ ] If found, 301 redirect to new handle
 - [ ] If not found, continue to 404
 
-#### Task 2.5: Canonical URL Routes
+#### Task 2.5: Canonical URL Routes *(deferred to Phase 4)*
 - [ ] Add route: `/p/{id}-{slug}` → `BusinessController@showCanonical`
 - [ ] Add route: `/@{handle}` → Check if current, else redirect, then `BusinessController@show`
 - [ ] Add route: `/@{handle}/{location}` → `LocationController@show`
@@ -410,48 +425,48 @@ Schema::create('service_areas', function (Blueprint $table) {
 ### Tasks for Feature 3
 
 #### Task 3.1: Create Locations Migration
-- [ ] Create migration: `create_locations_table.php`
-- [ ] Define all columns as specified
-- [ ] Add indexes on city, postcode, coordinates
-- [ ] Add constraint: Only one `is_primary=true` per business
+- [x] Create migration: `create_locations_table.php`
+- [x] Define all columns as specified
+- [x] Add indexes on city, postcode, coordinates
+- [x] Add constraint: Only one `is_primary=true` per business
 
 #### Task 3.2: Create Service_Areas Migration
-- [ ] Create migration: `create_service_areas_table.php`
-- [ ] Define area and postcode structure
-- [ ] Add index on `postcode_prefix` for search
+- [x] Create migration: `create_service_areas_table.php`
+- [x] Define area and postcode structure
+- [x] Add index on `postcode_prefix` for search
 
 #### Task 3.3: Create Location Model
-- [ ] Create `app/Models/Location.php`
-- [ ] Define fillable fields
-- [ ] Add casts: `opening_hours` => `array`
-- [ ] Define relationships:
+- [x] Create `app/Models/Location.php`
+- [x] Define fillable fields
+- [x] Add casts: `opening_hours` => `array`
+- [x] Define relationships:
   - `belongsTo(Business::class)`
   - `hasMany(Booking::class)`
   - `hasMany(ServiceArea::class)`
   - `hasMany(Service::class)` (if services vary by location)
-- [ ] Add scopes: `active()`, `acceptingBookings()`, `primary()`, `mobile()`
-- [ ] Add methods:
+- [x] Add scopes: `active()`, `acceptingBookings()`, `primary()`, `mobile()`
+- [x] Add methods:
   - `isWithinServiceRadius(float $lat, float $lng)` - Check if coords within radius
   - `servesPostcode(string $postcode)` - Check service areas
   - `getDistanceFrom(float $lat, float $lng)` - Haversine formula
 
 #### Task 3.4: Create ServiceArea Model
-- [ ] Create `app/Models/ServiceArea.php`
-- [ ] Define relationship to Location
-- [ ] Add scope: `forPostcode(string $postcode)`
+- [x] Create `app/Models/ServiceArea.php`
+- [x] Define relationship to Location
+- [x] Add scope: `forPostcode(string $postcode)`
 
 #### Task 3.5: Geocoding Integration
-- [ ] Install geocoding package (e.g., spatie/geocoder)
-- [ ] Create `app/Services/GeocodingService.php`
-- [ ] Method: `geocode(string $address)` - Returns lat/lng
-- [ ] Method: `reverseGeocode(float $lat, float $lng)` - Returns address
-- [ ] Cache geocoded results (avoid API spam)
+- [x] ~~Install geocoding package~~ Created custom `GeocodingService` using Google Maps API directly (no external package needed)
+- [x] Create `app/Services/GeocodingService.php`
+- [x] Method: `geocode(string $address)` - Returns lat/lng
+- [x] Method: `reverseGeocode(float $lat, float $lng)` - Returns address
+- [x] Cache geocoded results (avoid API spam)
 
 #### Task 3.6: Location Seeders
-- [ ] Seed 10-15 demo locations
-- [ ] Mix of salon and mobile
-- [ ] Distribute across multiple cities
-- [ ] Add realistic service areas for mobile locations
+- [x] Seed 10-15 demo locations
+- [x] Mix of salon and mobile
+- [x] Distribute across multiple cities
+- [x] Add realistic service areas for mobile locations
 
 ---
 
@@ -510,31 +525,31 @@ Schema::create('services', function (Blueprint $table) {
 ### Tasks for Feature 4
 
 #### Task 4.1: Create Services Migration
-- [ ] Create migration: `create_services_table.php`
-- [ ] Define service structure with flexible pricing
-- [ ] Add index on `business_id`, `is_active`, `display_order`
+- [x] Create migration: `create_services_table.php`
+- [x] Define service structure with flexible pricing
+- [x] Add index on `business_id`, `is_active`, `display_order`
 
 #### Task 4.2: Create Service Model
-- [ ] Create `app/Models/Service.php`
-- [ ] Define fillable fields
-- [ ] Add casts: `price` => `decimal:2`
-- [ ] Define relationships:
+- [x] Create `app/Models/Service.php`
+- [x] Define fillable fields
+- [x] Add casts: `price` => `decimal:2`
+- [x] Define relationships:
   - `belongsTo(Business::class)`
   - `belongsTo(Location::class)->nullable()`
   - `hasMany(Booking::class)`
-- [ ] Add scopes: `active()`, `forLocation(Location $location)`, `featured()`
-- [ ] Add methods:
+- [x] Add scopes: `active()`, `forLocation(Location $location)`, `featured()`
+- [x] Add methods:
   - `getFormattedPrice()` - Returns "£45.00" or "From £35" or "Price on request"
   - `isAvailableAtLocation(Location $location)` - Check if service offered there
 
 #### Task 4.3: Service Seeders
-- [ ] Seed common services:
+- [x] Seed common services:
   - Full Groom (£40-60, 90-120 mins)
   - Bath & Brush (£30-40, 60 mins)
   - Nail Trim (£10-15, 15 mins)
   - Teeth Cleaning (£20-30, 30 mins)
   - Puppy Introduction (£25-35, 45 mins)
-- [ ] Assign to demo businesses with variety
+- [x] Assign to demo businesses with variety
 
 ---
 
@@ -628,35 +643,35 @@ Schema::create('bookings', function (Blueprint $table) {
 ### Tasks for Feature 5
 
 #### Task 5.1: Create Bookings Migration
-- [ ] Create migration: `create_bookings_table.php`
-- [ ] Define complete booking lifecycle structure
-- [ ] Add indexes on location, staff, customer, datetime
-- [ ] Add composite index on `location_id` + `appointment_datetime` for conflict checking
+- [x] Create migration: `create_bookings_table.php`
+- [x] Define complete booking lifecycle structure
+- [x] Add indexes on location, staff, customer, datetime
+- [x] Add composite index on `location_id` + `appointment_datetime` for conflict checking
 
 #### Task 5.2: Create Booking Model
-- [ ] Create `app/Models/Booking.php`
-- [ ] Define fillable fields
-- [ ] Add casts:
+- [x] Create `app/Models/Booking.php`
+- [x] Define fillable fields
+- [x] Add casts:
   - `appointment_datetime` => `datetime`
   - `reminder_sent_at` => `datetime`
   - `cancelled_at` => `datetime`
   - `price` => `decimal:2`
   - `deposit_amount` => `decimal:2`
-- [ ] Define relationships:
+- [x] Define relationships:
   - `belongsTo(Business::class)`
   - `belongsTo(Location::class)`
   - `belongsTo(Service::class)`
   - `belongsTo(User::class, 'customer_id')`
   - `belongsTo(User::class, 'staff_member_id')->nullable()`
   - `belongsTo(User::class, 'cancelled_by_user_id')->nullable()`
-- [ ] Add scopes:
+- [x] Add scopes:
   - `upcoming()` - appointment_datetime > now
   - `past()`
   - `status(string $status)`
   - `forStaff(User $staff)`
   - `forCustomer(User $customer)`
   - `needsReminder()` - appointment within 24hrs, reminder not sent
-- [ ] Add methods:
+- [x] Add methods:
   - `canBeCancelled()` - Check cancellation policy (24hr notice)
   - `cancel(User $user, string $reason)`
   - `markAsCompleted()`
@@ -664,24 +679,24 @@ Schema::create('bookings', function (Blueprint $table) {
   - `sendReminder()`
 
 #### Task 5.3: Booking Conflict Detection
-- [ ] Create `app/Services/BookingService.php`
-- [ ] Method: `checkAvailability(Location $location, DateTime $start, int $duration, ?User $staff = null)`
+- [x] Create `app/Services/BookingService.php`
+- [x] Method: `checkAvailability(Location $location, DateTime $start, int $duration, ?User $staff = null)`
   - Check no overlapping bookings for location/staff
   - Check against availability blocks
   - Check against opening hours
   - Return true/false + reason
-- [ ] Method: `createBooking(array $data)`
+- [x] Method: `createBooking(array $data)`
   - Validate availability
   - Create booking record
   - Send confirmation email
   - Create calendar event (future)
 
 #### Task 5.4: Booking Seeders
-- [ ] Seed 50-100 demo bookings
-- [ ] Mix of past and future
-- [ ] Mix of statuses (mostly confirmed, some completed, few cancelled)
-- [ ] Ensure realistic distribution across days/times
-- [ ] Some with deposits paid, some without
+- [x] Seed 50-100 demo bookings
+- [x] Mix of past and future
+- [x] Mix of statuses (mostly confirmed, some completed, few cancelled)
+- [x] Ensure realistic distribution across days/times
+- [x] Some with deposits paid, some without
 
 ---
 
@@ -747,48 +762,48 @@ Schema::create('customers', function (Blueprint $table) {
 ### Tasks for Feature 6
 
 #### Task 6.1: Create Customers Migration
-- [ ] Create migration: `create_customers_table.php`
-- [ ] Define customer and pet profile structure
-- [ ] Add indexes on `business_id`, `email`, `phone`
-- [ ] Add unique constraint on `business_id` + `email`
+- [x] Create migration: `create_customers_table.php`
+- [x] Define customer and pet profile structure
+- [x] Add indexes on `business_id`, `email`, `phone`
+- [x] Add unique constraint on `business_id` + `email`
 
 #### Task 6.2: Create Customer Model
-- [ ] Create `app/Models/Customer.php`
-- [ ] Define fillable fields
-- [ ] Add casts:
+- [x] Create `app/Models/Customer.php`
+- [x] Define fillable fields
+- [x] Add casts:
   - `pet_birthday` => `date`
   - `birthday` => `date`
   - `last_visit` => `datetime`
   - `tags` => `array`
   - `total_spent` => `decimal:2`
-- [ ] Define relationships:
+- [x] Define relationships:
   - `belongsTo(Business::class)`
   - `belongsTo(User::class)->nullable()`
   - `hasMany(Booking::class, 'customer_id')`
-- [ ] Add scopes:
+- [x] Add scopes:
   - `active()`
   - `hasTag(string $tag)`
   - `vip()` - total_spent > threshold
-- [ ] Add methods:
+- [x] Add methods:
   - `incrementLoyaltyPoints(int $amount)`
   - `getPetAge()` - Calculate from pet_birthday
   - `getNextFreeCut()` - If loyalty program (10th cut free)
 
 #### Task 6.3: Customer Auto-Update Logic
-- [ ] Create observer: `CustomerObserver`
-- [ ] When booking completes:
+- [x] ~~Create observer: `CustomerObserver`~~ Implemented as `updateFromBooking()` method on Customer model
+- [x] When booking completes:
   - Increment `total_bookings`
   - Add booking price to `total_spent`
   - Update `last_visit`
   - Award loyalty points
-- [ ] Method: `updateFromBooking(Booking $booking)`
+- [x] Method: `updateFromBooking(Booking $booking)`
 
 #### Task 6.4: Customer Seeders
-- [ ] Seed 100-200 demo customers
-- [ ] Distribute across businesses
-- [ ] Realistic names, emails, phone numbers
-- [ ] Variety of pet breeds and sizes
-- [ ] Some with loyalty points, some new
+- [x] Seed 100-200 demo customers
+- [x] Distribute across businesses
+- [x] Realistic names, emails, phone numbers
+- [x] Variety of pet breeds and sizes
+- [x] Some with loyalty points, some new
 
 ---
 
@@ -846,43 +861,43 @@ Schema::create('staff_members', function (Blueprint $table) {
 ### Tasks for Feature 7
 
 #### Task 7.1: Create Staff_Members Migration
-- [ ] Create migration: `create_staff_members_table.php`
-- [ ] Define staff profile and employment structure
-- [ ] Add indexes on `business_id`, `is_active`
-- [ ] Add unique constraint on `business_id` + `user_id`
+- [x] Create migration: `create_staff_members_table.php`
+- [x] Define staff profile and employment structure
+- [x] Add indexes on `business_id`, `is_active`
+- [x] Add unique constraint on `business_id` + `user_id`
 
 #### Task 7.2: Create StaffMember Model
-- [ ] Create `app/Models/StaffMember.php`
-- [ ] Define fillable fields
-- [ ] Add casts:
+- [x] Create `app/Models/StaffMember.php`
+- [x] Define fillable fields
+- [x] Add casts:
   - `working_locations` => `array`
   - `commission_rate` => `decimal:2`
   - `employed_since` => `datetime`
   - `left_at` => `datetime`
-- [ ] Define relationships:
+- [x] Define relationships:
   - `belongsTo(Business::class)`
   - `belongsTo(User::class)`
   - `hasMany(Booking::class, 'staff_member_id')`
-- [ ] Add scopes:
+- [x] Add scopes:
   - `active()`
   - `acceptingBookings()`
   - `worksAtLocation(Location $location)`
-- [ ] Add methods:
+- [x] Add methods:
   - `getEarningsForPeriod(Carbon $start, Carbon $end)` - Calculate commission
   - `getBookingCountForPeriod(Carbon $start, Carbon $end)`
 
 #### Task 7.3: Tier Validation
-- [ ] Add business scope check: `canAddStaff()`
+- [x] Add business scope check: `canAddStaff()`
   - Free tier: Cannot add staff
   - Solo tier: Cannot add staff
   - Salon tier: Up to 5 staff members
-- [ ] Throw exception if limit exceeded
+- [x] Throw exception if limit exceeded
 
 #### Task 7.4: Staff Seeders
-- [ ] Seed staff members for Salon tier businesses
-- [ ] 2-4 staff per salon business
-- [ ] Realistic commission rates (30-50%)
-- [ ] Different calendar colors
+- [x] Seed staff members for Salon tier businesses
+- [x] 2-4 staff per salon business
+- [x] Realistic commission rates (30-50%)
+- [x] Different calendar colors
 
 ---
 
@@ -948,46 +963,46 @@ Schema::create('availability_blocks', function (Blueprint $table) {
 ### Tasks for Feature 8
 
 #### Task 8.1: Create Availability_Blocks Migration
-- [ ] Create migration: `create_availability_blocks_table.php`
-- [ ] Define recurring and one-off schedule structure
-- [ ] Add indexes on location, staff, `day_of_week`, `specific_date`
+- [x] Create migration: `create_availability_blocks_table.php`
+- [x] Define recurring and one-off schedule structure
+- [x] Add indexes on location, staff, `day_of_week`, `specific_date`
 
 #### Task 8.2: Create AvailabilityBlock Model
-- [ ] Create `app/Models/AvailabilityBlock.php`
-- [ ] Define fillable fields
-- [ ] Add casts:
+- [x] Create `app/Models/AvailabilityBlock.php`
+- [x] Define fillable fields
+- [x] Add casts:
   - `start_time` => `datetime:H:i`
   - `end_time` => `datetime:H:i`
   - `specific_date` => `date`
-- [ ] Define relationships:
+- [x] Define relationships:
   - `belongsTo(Business::class)`
   - `belongsTo(Location::class)->nullable()`
   - `belongsTo(User::class, 'staff_member_id')->nullable()`
-- [ ] Add scopes:
+- [x] Add scopes:
   - `forDate(Carbon $date)`
   - `forDayOfWeek(int $day)`
   - `available()`
   - `blocked()`
-- [ ] Add methods:
+- [x] Add methods:
   - `isActiveOn(Carbon $datetime)` - Check if block applies
   - `conflictsWith(AvailabilityBlock $other)`
 
 #### Task 8.3: Availability Calculation Service
-- [ ] Create `app/Services/AvailabilityService.php`
-- [ ] Method: `getAvailableSlots(Location $location, Carbon $date, ?User $staff = null)`
+- [x] Create `app/Services/AvailabilityService.php`
+- [x] Method: `getAvailableSlots(Location $location, Carbon $date, ?User $staff = null)`
   - Load all availability blocks for date
   - Load all bookings for date
   - Calculate free time slots (e.g., 9am-5pm minus bookings minus breaks)
   - Return array of available slots: `[{time: "10:00", duration: 60}, ...]`
-- [ ] Method: `isTimeSlotAvailable(Location $location, Carbon $datetime, int $duration, ?User $staff = null)`
+- [x] Method: `isTimeSlotAvailable(Location $location, Carbon $datetime, int $duration, ?User $staff = null)`
 
 #### Task 8.4: Default Availability Seeders
-- [ ] Seed default hours for businesses:
+- [x] Seed default hours for businesses:
   - Mon-Fri: 9am-5pm (available)
   - Sat: 9am-1pm (available)
   - Sun: Closed (blocked)
   - Daily: 1pm-2pm lunch (break)
-- [ ] Seed some one-off blocks (holidays, vacation)
+- [x] Seed some one-off blocks (holidays, vacation)
 
 ---
 
@@ -1048,42 +1063,42 @@ Schema::create('reviews', function (Blueprint $table) {
 ### Tasks for Feature 9
 
 #### Task 9.1: Create Reviews Migration
-- [ ] Create migration: `create_reviews_table.php`
-- [ ] Define review structure with verification
-- [ ] Add indexes on `business_id`, `user_id`, `created_at`
+- [x] Create migration: `create_reviews_table.php`
+- [x] Define review structure with verification
+- [x] Add indexes on `business_id`, `user_id`, `created_at`
 
 #### Task 9.2: Create Review Model
-- [ ] Create `app/Models/Review.php`
-- [ ] Define fillable fields
-- [ ] Add casts:
+- [x] Create `app/Models/Review.php`
+- [x] Define fillable fields
+- [x] Add casts:
   - `photos` => `array`
   - `responded_at` => `datetime`
-- [ ] Define relationships:
+- [x] Define relationships:
   - `belongsTo(Business::class)`
   - `belongsTo(Booking::class)->nullable()`
   - `belongsTo(User::class)` (reviewer)
   - `belongsTo(User::class, 'responded_by_user_id')->nullable()`
-- [ ] Add scopes:
+- [x] Add scopes:
   - `published()`
   - `verified()`
   - `rating(int $stars)` - e.g., `rating(5)` for 5-star reviews
-- [ ] Add methods:
+- [x] Add methods:
   - `respond(string $text, User $responder)`
   - `flag(string $reason)`
 
 #### Task 9.3: Review Aggregation
-- [ ] Add to Business model:
+- [x] Add to Business model:
   - `getAverageRating()` - Cached calculation
   - `getReviewCount()`
   - `getRatingBreakdown()` - `[5 => 45, 4 => 8, 3 => 2, 2 => 1, 1 => 0]`
-- [ ] Create scheduled job to update cached ratings daily
+- [ ] Create scheduled job to update cached ratings daily *(deferred — ratings calculated live for now)*
 
 #### Task 9.4: Review Seeders
-- [ ] Seed 50-100 reviews across businesses
-- [ ] Mix of ratings (mostly 4-5 stars, some 3, few 1-2)
-- [ ] 80% verified (from bookings)
-- [ ] Some with responses from business
-- [ ] Realistic review text
+- [x] Seed 50-100 reviews across businesses
+- [x] Mix of ratings (mostly 4-5 stars, some 3, few 1-2)
+- [x] 80% verified (from bookings)
+- [x] Some with responses from business
+- [x] Realistic review text
 
 ---
 
@@ -1150,38 +1165,38 @@ Schema::create('transactions', function (Blueprint $table) {
 
 ### Tasks for Feature 10
 
-#### Task 10.1: Install Laravel Cashier
+#### Task 10.1: Install Laravel Cashier *(deferred to Phase 7)*
 - [ ] Install Cashier: `composer require laravel/cashier`
 - [ ] Publish migrations: `php artisan vendor:publish --tag="cashier-migrations"`
 - [ ] Run migrations: `php artisan migrate`
 
-#### Task 10.2: Update Business Model for Cashier
+#### Task 10.2: Update Business Model for Cashier *(deferred to Phase 7)*
 - [ ] Add `Billable` trait to Business model
 - [ ] Configure Stripe API keys in `.env`
 - [ ] Test subscription creation in Stripe test mode
 
 #### Task 10.3: Create Transactions Migration
-- [ ] Create migration: `create_transactions_table.php`
-- [ ] Define transaction logging structure
-- [ ] Add indexes on business, type, Stripe IDs
+- [x] Create migration: `create_transactions_table.php`
+- [x] Define transaction logging structure
+- [x] Add indexes on business, type, Stripe IDs
 
 #### Task 10.4: Create Transaction Model
-- [ ] Create `app/Models/Transaction.php`
-- [ ] Define fillable fields
-- [ ] Add casts: `amount` => `decimal:2`
-- [ ] Define relationships:
+- [x] Create `app/Models/Transaction.php`
+- [x] Define fillable fields
+- [x] Add casts: `amount` => `decimal:2`
+- [x] Define relationships:
   - `belongsTo(Business::class)`
   - `belongsTo(Booking::class)->nullable()`
-- [ ] Add scopes:
+- [x] Add scopes:
   - `type(string $type)`
   - `completed()`
   - `forPeriod(Carbon $start, Carbon $end)`
 
 #### Task 10.5: Transaction Logging
-- [ ] Create `TransactionLogger` service
-- [ ] Method: `logSubscription(Business $business, string $invoiceId, float $amount)`
-- [ ] Method: `logBookingPayment(Booking $booking, string $paymentIntentId, float $amount)`
-- [ ] Method: `logPlatformFee(Booking $booking, float $amount)`
+- [x] Create `TransactionLogger` service
+- [x] Method: `logSubscription(Business $business, string $invoiceId, float $amount)`
+- [x] Method: `logBookingPayment(Booking $booking, string $paymentIntentId, float $amount)`
+- [x] Method: `logPlatformFee(Booking $booking, float $amount)`
 
 ---
 
@@ -1276,103 +1291,136 @@ Schema::create('email_log', function (Blueprint $table) {
 ### Tasks for Feature 11
 
 #### Task 11.1: Create SMS_Log Migration
-- [ ] Create migration: `create_sms_log_table.php`
-- [ ] Define SMS tracking structure
-- [ ] Add indexes on business, booking, `created_at`
+- [x] Create migration: `create_sms_log_table.php`
+- [x] Define SMS tracking structure
+- [x] Add indexes on business, booking, `created_at`
 
 #### Task 11.2: Create Email_Log Migration
-- [ ] Create migration: `create_email_log_table.php`
-- [ ] Define email tracking structure
-- [ ] Add indexes on business, `created_at`
+- [x] Create migration: `create_email_log_table.php`
+- [x] Define email tracking structure
+- [x] Add indexes on business, `created_at`
 
 #### Task 11.3: Create SmsLog Model
-- [ ] Create `app/Models/SmsLog.php`
-- [ ] Define fillable fields
-- [ ] Add casts:
+- [x] Create `app/Models/SmsLog.php`
+- [x] Define fillable fields
+- [x] Add casts:
   - `sent_at` => `datetime`
   - `delivered_at` => `datetime`
   - `cost` => `decimal:4`
-- [ ] Define relationships:
+- [x] Define relationships:
   - `belongsTo(Business::class)`
   - `belongsTo(Booking::class)->nullable()`
-- [ ] Add scopes:
+- [x] Add scopes:
   - `forBusiness(Business $business)`
   - `forPeriod(Carbon $start, Carbon $end)`
   - `delivered()`
 
 #### Task 11.4: Create EmailLog Model
-- [ ] Create `app/Models/EmailLog.php`
-- [ ] Similar structure to SmsLog
+- [x] Create `app/Models/EmailLog.php`
+- [x] Similar structure to SmsLog
 
 #### Task 11.5: SMS Quota Service
-- [ ] Create `app/Services/SmsQuotaService.php`
-- [ ] Method: `getRemainingQuota(Business $business, Carbon $month)`
+- [x] Create `app/Services/SmsQuotaService.php`
+- [x] Method: `getRemainingQuota(Business $business, Carbon $month)`
   - Calculate quota based on tier
   - Count SMS sent this month
   - Return remaining
-- [ ] Method: `canSendSms(Business $business)` - Check if quota available
-- [ ] Method: `calculateOverageCharge(Business $business, Carbon $month)`
+- [x] Method: `canSendSms(Business $business)` - Check if quota available
+- [x] Method: `calculateOverageCharge(Business $business, Carbon $month)`
 
 ---
 
 ## Final Checklist
 
 ### Migrations Completed
-- [ ] Users table (update with role)
-- [ ] Businesses table
-- [ ] Business_User pivot table
-- [ ] Handle_Changes table
-- [ ] Locations table
-- [ ] Service_Areas table
-- [ ] Services table
-- [ ] Bookings table
-- [ ] Customers table
-- [ ] Staff_Members table
-- [ ] Availability_Blocks table
-- [ ] Reviews table
-- [ ] Transactions table
-- [ ] SMS_Log table
-- [ ] Email_Log table
-- [ ] Cashier tables (subscriptions)
+- [x] Users table (update with role)
+- [x] Businesses table
+- [x] Business_User pivot table
+- [x] Handle_Changes table
+- [x] Locations table
+- [x] Service_Areas table
+- [x] Services table
+- [x] Bookings table
+- [x] Customers table
+- [x] Staff_Members table
+- [x] Availability_Blocks table
+- [x] Reviews table
+- [x] Transactions table
+- [x] SMS_Log table
+- [x] Email_Log table
+- [ ] Cashier tables (subscriptions) *(deferred to Phase 7)*
+
+#### Phase 2b Migrations
+- [x] Subscription_Tiers lookup table (with inline seed data)
+- [x] Subscription_Statuses lookup table (with inline seed data)
+- [x] Business_Roles lookup table (with inline seed data)
+- [x] Species taxonomy table
+- [x] Size_Categories taxonomy table
+- [x] Breeds taxonomy table (FK to species)
+- [x] Pets table (FK to users, species, breeds, size_categories)
+- [x] Add `is_registered` to users table
+- [x] Refactor businesses table (enum → FK for tier/status)
+- [x] Refactor business_user table (enum → FK for role)
+- [x] Refactor customers table (remove pet columns, add source/marketing_consent, user_id NOT NULL)
 
 ### Models Created
-- [ ] Business
-- [ ] Location
-- [ ] ServiceArea
-- [ ] Service
-- [ ] Booking
-- [ ] Customer
-- [ ] StaffMember
-- [ ] AvailabilityBlock
-- [ ] Review
-- [ ] Transaction
-- [ ] SmsLog
-- [ ] EmailLog
-- [ ] HandleChange
+- [x] Business
+- [x] Location
+- [x] ServiceArea
+- [x] Service
+- [x] Booking
+- [x] Customer
+- [x] StaffMember
+- [x] AvailabilityBlock
+- [x] Review
+- [x] Transaction
+- [x] SmsLog
+- [x] EmailLog
+- [x] HandleChange
+
+#### Phase 2b Models
+- [x] SubscriptionTier (with `findBySlug()` helper)
+- [x] SubscriptionStatus (with `findBySlug()` helper)
+- [x] BusinessRole (with `findBySlug()` helper)
+- [x] Species (relationships: breeds, pets)
+- [x] SizeCategory (relationship: pets)
+- [x] Breed (relationships: species, pets)
+- [x] Pet (relationships: user, species, breed, sizeCategory)
 
 ### Services Created
-- [ ] HandleService
-- [ ] GeocodingService
-- [ ] BookingService
-- [ ] AvailabilityService
-- [ ] SmsQuotaService
-- [ ] TransactionLogger
+- [x] HandleService
+- [x] GeocodingService
+- [x] BookingService
+- [x] AvailabilityService
+- [x] SmsQuotaService (updated in 2b: reads quota from subscription_tiers table)
+- [x] TransactionLogger (updated in 2b: uses subscriptionTier relationship)
 
 ### Seeders Created
-- [ ] BusinessSeeder
-- [ ] LocationSeeder
-- [ ] ServiceSeeder
-- [ ] BookingSeeder
-- [ ] CustomerSeeder
-- [ ] StaffSeeder
-- [ ] AvailabilitySeeder
-- [ ] ReviewSeeder
+- [x] BusinessSeeder (updated in 2b: uses FK references)
+- [x] LocationSeeder
+- [x] ServiceSeeder
+- [x] BookingSeeder (updated in 2b: queries by tier FK)
+- [x] CustomerSeeder (updated in 2b: always creates user, no pet fields)
+- [x] StaffSeeder (updated in 2b: queries by tier FK, uses BusinessRole)
+- [x] AvailabilitySeeder (updated in 2b: queries by tier FK)
+- [x] ReviewSeeder
+
+#### Phase 2b Seeders
+- [x] SubscriptionTierSeeder
+- [x] SubscriptionStatusSeeder
+- [x] BusinessRoleSeeder
+- [x] TaxonomySeeder (species, size categories, breeds)
+- [x] PetSeeder
 
 ### Testing
-- [ ] Run all migrations: `php artisan migrate:fresh`
-- [ ] Run all seeders: `php artisan db:seed`
-- [ ] Verify relationships work in Tinker
-- [ ] Test handle uniqueness validation
-- [ ] Test booking conflict detection
-- [ ] Test availability calculation
-- [ ] Verify data isolation (businesses can't see others' data)
+- [x] Run all migrations: `php artisan migrate:fresh`
+- [x] Run all seeders: `php artisan db:seed`
+- [x] Verify relationships work in Tinker
+- [x] Test handle uniqueness validation
+- [x] Test booking conflict detection
+- [x] Test availability calculation
+- [x] Verify data isolation (businesses can't see others' data)
+- [x] Phase 2b: 109 tests passing (236 assertions), Pint clean
+- [x] Phase 2b: Pet model tests (belongs to user, species, breed; user has many pets)
+- [x] Phase 2b: Updated Business tests (subscription tier relationship, staff limit via lookup)
+- [x] Phase 2b: Updated Data isolation tests (pets belong to users not customers)

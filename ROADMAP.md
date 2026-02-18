@@ -23,15 +23,37 @@
 
 ---
 
-## Phase 2: Core Database Schema (Week 2-3)
+## Phase 2: Core Database Schema (Week 2-3) - COMPLETE
 
 > **Detailed spec:** [`roadmap/phase-2-database-schema.md`](roadmap/phase-2-database-schema.md)
 
-- [ ] Migrations (16 tables: businesses, locations, services, bookings, customers, staff, reviews, availability, transactions, comms logs)
-- [ ] Models with relationships, casts, scopes (13 models)
-- [ ] Services (HandleService, BookingService, AvailabilityService, GeocodingService, SmsQuotaService, TransactionLogger)
-- [ ] Seeders (8 seeders with realistic demo data)
-- [ ] Verification (migrate:fresh, db:seed, relationship tests, data isolation)
+- [x] Migrations (15 tables: businesses, locations, services, bookings, customers, staff, reviews, availability, transactions, comms logs — Cashier deferred to Phase 7)
+- [x] Models with relationships, casts, scopes (13 models)
+- [x] Services (HandleService, BookingService, AvailabilityService, GeocodingService, SmsQuotaService, TransactionLogger)
+- [x] Seeders (8 seeders with realistic demo data)
+- [x] Verification (migrate:fresh, db:seed, 49 relationship/scope/isolation tests passing)
+
+### Phase 2b: Schema Refactor — Lookup Tables, Pets & Stub Users - COMPLETE
+
+- [x] Lookup tables: `subscription_tiers`, `subscription_statuses`, `business_roles` (replace enums with FK references)
+- [x] Taxonomy tables: `species`, `size_categories`, `breeds`
+- [x] Pets table: belongs to `users` (not customers), enabling cross-business pet data
+- [x] Stub users: `is_registered` flag on users, `user_id` now NOT NULL on customers — walk-ins get a stub User record
+- [x] Customer refactor: removed pet columns, added `source` and `marketing_consent`
+- [x] 7 new models (SubscriptionTier, SubscriptionStatus, BusinessRole, Species, SizeCategory, Breed, Pet)
+- [x] Updated all factories, seeders, services, and tests (109 tests passing)
+
+### Phase 2c: Customer Registration Service - TODO
+
+- [ ] `CustomerRegistrationService` — find-or-create user by email/phone when a business adds a customer
+- [ ] If stub user already exists, reuse it (pets and history follow the person across businesses)
+- [ ] If no match, create a stub user (`is_registered = false`)
+- [ ] Handle account upgrade: when a stub user signs up, upgrade `is_registered = true` and merge identity
+- [ ] **Open question: Pet data visibility and consent** — when a second groomer links to an existing user, should they see pet data from the first groomer? The customer benefits (no re-entering pet details), but the original business may consider that data proprietary. Options:
+  - **(a) Shared by default** — pet data belongs to the user, visible to any linked business (simplest, best UX)
+  - **(b) Opt-in sharing** — user must consent before pet data is visible to new businesses
+  - **(c) Business-scoped pets** — each business sees only pets they created, with optional merge prompt to the user
+  - Decision needed before implementing the registration service
 
 ---
 
@@ -135,6 +157,8 @@
 - [ ] Cross-browser & mobile testing
 - [ ] Analytics & monitoring (GA, Sentry, uptime)
 - [ ] Backup & security (DB backups, headers, rate limiting)
+- [ ] CI/CD pipeline (GitHub Actions: run `php artisan test` before deploy, block on failure)
+- [ ] Production seeder safety: add environment guards to `DatabaseSeeder`, move taxonomy data into migrations or a production-safe seeder, ensure `db:seed` never runs fake data in production
 
 ---
 

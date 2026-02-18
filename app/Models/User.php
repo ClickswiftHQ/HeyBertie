@@ -4,6 +4,8 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
@@ -22,6 +24,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'is_registered',
     ];
 
     /**
@@ -47,7 +50,40 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'super' => 'boolean',
+            'is_registered' => 'boolean',
             'two_factor_confirmed_at' => 'datetime',
         ];
+    }
+
+    /**
+     * @return HasMany<Business, $this>
+     */
+    public function ownedBusinesses(): HasMany
+    {
+        return $this->hasMany(Business::class, 'owner_user_id');
+    }
+
+    /**
+     * @return BelongsToMany<Business, $this>
+     */
+    public function businesses(): BelongsToMany
+    {
+        return $this->belongsToMany(Business::class)
+            ->withPivot('business_role_id', 'is_active', 'invited_at', 'accepted_at')
+            ->withTimestamps();
+    }
+
+    /**
+     * @return HasMany<Pet, $this>
+     */
+    public function pets(): HasMany
+    {
+        return $this->hasMany(Pet::class);
+    }
+
+    public function hasAccessToBusiness(Business $business): bool
+    {
+        return $business->owner_user_id === $this->id
+            || $this->businesses()->where('business_id', $business->id)->exists();
     }
 }
