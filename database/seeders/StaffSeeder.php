@@ -25,7 +25,7 @@ class StaffSeeder extends Seeder
             for ($i = 0; $i < $staffCount; $i++) {
                 $user = User::factory()->create(['role' => 'pro']);
 
-                StaffMember::create([
+                $staff = StaffMember::create([
                     'business_id' => $business->id,
                     'user_id' => $user->id,
                     'display_name' => $user->name,
@@ -33,11 +33,12 @@ class StaffSeeder extends Seeder
                     'role' => $i === 0 ? 'groomer' : fake()->randomElement(['groomer', 'assistant']),
                     'commission_rate' => fake()->randomElement([30, 35, 40, 45]),
                     'calendar_color' => fake()->randomElement(['#EF4444', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6']),
-                    'working_locations' => $locationIds,
                     'accepts_online_bookings' => true,
                     'is_active' => true,
                     'employed_since' => fake()->dateTimeBetween('-2 years', '-1 month'),
                 ]);
+
+                $staff->locations()->attach($locationIds);
 
                 $business->users()->attach($user->id, [
                     'business_role_id' => $staffRole->id,

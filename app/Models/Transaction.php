@@ -7,6 +7,45 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property int $id
+ * @property int $business_id
+ * @property int|null $booking_id
+ * @property string $type
+ * @property numeric $amount
+ * @property string $currency
+ * @property string|null $stripe_payment_intent_id
+ * @property string|null $stripe_charge_id
+ * @property string|null $stripe_invoice_id
+ * @property string $status
+ * @property string|null $description
+ * @property \Carbon\CarbonImmutable|null $created_at
+ * @property \Carbon\CarbonImmutable|null $updated_at
+ * @property-read \App\Models\Booking|null $booking
+ * @property-read \App\Models\Business $business
+ *
+ * @method static Builder<static>|Transaction completed()
+ * @method static Builder<static>|Transaction forPeriod(\Carbon\Carbon $start, \Carbon\Carbon $end)
+ * @method static Builder<static>|Transaction newModelQuery()
+ * @method static Builder<static>|Transaction newQuery()
+ * @method static Builder<static>|Transaction query()
+ * @method static Builder<static>|Transaction type(string $type)
+ * @method static Builder<static>|Transaction whereAmount($value)
+ * @method static Builder<static>|Transaction whereBookingId($value)
+ * @method static Builder<static>|Transaction whereBusinessId($value)
+ * @method static Builder<static>|Transaction whereCreatedAt($value)
+ * @method static Builder<static>|Transaction whereCurrency($value)
+ * @method static Builder<static>|Transaction whereDescription($value)
+ * @method static Builder<static>|Transaction whereId($value)
+ * @method static Builder<static>|Transaction whereStatus($value)
+ * @method static Builder<static>|Transaction whereStripeChargeId($value)
+ * @method static Builder<static>|Transaction whereStripeInvoiceId($value)
+ * @method static Builder<static>|Transaction whereStripePaymentIntentId($value)
+ * @method static Builder<static>|Transaction whereType($value)
+ * @method static Builder<static>|Transaction whereUpdatedAt($value)
+ *
+ * @mixin \Eloquent
+ */
 class Transaction extends Model
 {
     protected $fillable = [

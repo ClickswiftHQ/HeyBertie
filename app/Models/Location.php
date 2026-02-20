@@ -6,8 +6,83 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property int $id
+ * @property int $business_id
+ * @property string $name
+ * @property string $slug
+ * @property string $location_type
+ * @property string $address_line_1
+ * @property string|null $address_line_2
+ * @property string $city
+ * @property string $postcode
+ * @property string|null $county
+ * @property numeric|null $latitude
+ * @property numeric|null $longitude
+ * @property bool $is_mobile
+ * @property int|null $service_radius_km
+ * @property string|null $phone
+ * @property string|null $email
+ * @property array<array-key, mixed>|null $opening_hours
+ * @property int $booking_buffer_minutes
+ * @property int $advance_booking_days
+ * @property int $min_notice_hours
+ * @property bool $is_primary
+ * @property bool $is_active
+ * @property bool $accepts_bookings
+ * @property \Carbon\CarbonImmutable|null $created_at
+ * @property \Carbon\CarbonImmutable|null $updated_at
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\AvailabilityBlock> $availabilityBlocks
+ * @property-read int|null $availability_blocks_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Booking> $bookings
+ * @property-read int|null $bookings_count
+ * @property-read \App\Models\Business $business
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\ServiceArea> $serviceAreas
+ * @property-read int|null $service_areas_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Service> $services
+ * @property-read int|null $services_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\StaffMember> $staffMembers
+ * @property-read int|null $staff_members_count
+ *
+ * @method static Builder<static>|Location acceptingBookings()
+ * @method static Builder<static>|Location active()
+ * @method static \Database\Factories\LocationFactory factory($count = null, $state = [])
+ * @method static Builder<static>|Location mobile()
+ * @method static Builder<static>|Location newModelQuery()
+ * @method static Builder<static>|Location newQuery()
+ * @method static Builder<static>|Location primary()
+ * @method static Builder<static>|Location query()
+ * @method static Builder<static>|Location whereAcceptsBookings($value)
+ * @method static Builder<static>|Location whereAddressLine1($value)
+ * @method static Builder<static>|Location whereAddressLine2($value)
+ * @method static Builder<static>|Location whereAdvanceBookingDays($value)
+ * @method static Builder<static>|Location whereBookingBufferMinutes($value)
+ * @method static Builder<static>|Location whereBusinessId($value)
+ * @method static Builder<static>|Location whereCity($value)
+ * @method static Builder<static>|Location whereCounty($value)
+ * @method static Builder<static>|Location whereCreatedAt($value)
+ * @method static Builder<static>|Location whereEmail($value)
+ * @method static Builder<static>|Location whereId($value)
+ * @method static Builder<static>|Location whereIsActive($value)
+ * @method static Builder<static>|Location whereIsMobile($value)
+ * @method static Builder<static>|Location whereIsPrimary($value)
+ * @method static Builder<static>|Location whereLatitude($value)
+ * @method static Builder<static>|Location whereLocationType($value)
+ * @method static Builder<static>|Location whereLongitude($value)
+ * @method static Builder<static>|Location whereMinNoticeHours($value)
+ * @method static Builder<static>|Location whereName($value)
+ * @method static Builder<static>|Location whereOpeningHours($value)
+ * @method static Builder<static>|Location wherePhone($value)
+ * @method static Builder<static>|Location wherePostcode($value)
+ * @method static Builder<static>|Location whereServiceRadiusKm($value)
+ * @method static Builder<static>|Location whereSlug($value)
+ * @method static Builder<static>|Location whereUpdatedAt($value)
+ *
+ * @mixin \Eloquent
+ */
 class Location extends Model
 {
     /** @use HasFactory<\Database\Factories\LocationFactory> */
@@ -84,6 +159,14 @@ class Location extends Model
     public function services(): HasMany
     {
         return $this->hasMany(Service::class);
+    }
+
+    /**
+     * @return BelongsToMany<StaffMember, $this>
+     */
+    public function staffMembers(): BelongsToMany
+    {
+        return $this->belongsToMany(StaffMember::class, 'staff_location');
     }
 
     /**

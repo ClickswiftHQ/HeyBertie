@@ -7,6 +7,47 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property int $id
+ * @property int $business_id
+ * @property int|null $booking_id
+ * @property string $phone_number
+ * @property string $message_type
+ * @property string $message_body
+ * @property string|null $twilio_sid
+ * @property string $status
+ * @property \Carbon\CarbonImmutable|null $sent_at
+ * @property \Carbon\CarbonImmutable|null $delivered_at
+ * @property numeric $cost
+ * @property bool $charged_to_business
+ * @property \Carbon\CarbonImmutable|null $created_at
+ * @property \Carbon\CarbonImmutable|null $updated_at
+ * @property-read \App\Models\Booking|null $booking
+ * @property-read \App\Models\Business $business
+ *
+ * @method static Builder<static>|SmsLog delivered()
+ * @method static Builder<static>|SmsLog forBusiness(\App\Models\Business $business)
+ * @method static Builder<static>|SmsLog forPeriod(\Carbon\Carbon $start, \Carbon\Carbon $end)
+ * @method static Builder<static>|SmsLog newModelQuery()
+ * @method static Builder<static>|SmsLog newQuery()
+ * @method static Builder<static>|SmsLog query()
+ * @method static Builder<static>|SmsLog whereBookingId($value)
+ * @method static Builder<static>|SmsLog whereBusinessId($value)
+ * @method static Builder<static>|SmsLog whereChargedToBusiness($value)
+ * @method static Builder<static>|SmsLog whereCost($value)
+ * @method static Builder<static>|SmsLog whereCreatedAt($value)
+ * @method static Builder<static>|SmsLog whereDeliveredAt($value)
+ * @method static Builder<static>|SmsLog whereId($value)
+ * @method static Builder<static>|SmsLog whereMessageBody($value)
+ * @method static Builder<static>|SmsLog whereMessageType($value)
+ * @method static Builder<static>|SmsLog wherePhoneNumber($value)
+ * @method static Builder<static>|SmsLog whereSentAt($value)
+ * @method static Builder<static>|SmsLog whereStatus($value)
+ * @method static Builder<static>|SmsLog whereTwilioSid($value)
+ * @method static Builder<static>|SmsLog whereUpdatedAt($value)
+ *
+ * @mixin \Eloquent
+ */
 class SmsLog extends Model
 {
     protected $table = 'sms_log';

@@ -2,6 +2,8 @@
 
 > High-level progress tracker. Detailed specs live in [`roadmap/`](roadmap/).
 
+**Platform principle:** heyBertie is a sector-agnostic pet services marketplace. Dog grooming is the initial launch vertical, but the schema, terminology, and features must remain generic enough to extend to other sectors (cat sitting, dog walking, pet boarding, mobile vets, etc.) without structural rewrites. Avoid grooming-specific assumptions in models, UI copy, and business logic.
+
 ---
 
 ## Phase 0: Foundation & Setup (Week 1) - COMPLETE
@@ -43,17 +45,53 @@
 - [x] 7 new models (SubscriptionTier, SubscriptionStatus, BusinessRole, Species, SizeCategory, Breed, Pet)
 - [x] Updated all factories, seeders, services, and tests (109 tests passing)
 
-### Phase 2c: Customer Registration Service - TODO
+### Phase 2c: Customer Registration Service & Pet Data Visibility - COMPLETE
 
-- [ ] `CustomerRegistrationService` — find-or-create user by email/phone when a business adds a customer
-- [ ] If stub user already exists, reuse it (pets and history follow the person across businesses)
-- [ ] If no match, create a stub user (`is_registered = false`)
-- [ ] Handle account upgrade: when a stub user signs up, upgrade `is_registered = true` and merge identity
-- [ ] **Open question: Pet data visibility and consent** — when a second groomer links to an existing user, should they see pet data from the first groomer? The customer benefits (no re-entering pet details), but the original business may consider that data proprietary. Options:
-  - **(a) Shared by default** — pet data belongs to the user, visible to any linked business (simplest, best UX)
-  - **(b) Opt-in sharing** — user must consent before pet data is visible to new businesses
-  - **(c) Business-scoped pets** — each business sees only pets they created, with optional merge prompt to the user
-  - Decision needed before implementing the registration service
+**Decision: Three-Tier Pet Data Visibility Model**
+
+| Tier | Ownership | Visibility | Examples |
+|------|-----------|------------|----------|
+| Pet Profile | Customer (platform) | Customer + businesses they book with (after opt-in) | Name, breed, weight, DOB, allergies |
+| Business-Pet Notes | Business-scoped | That business's staff only | Private notes, difficulty rating |
+| Visit Notes | Business-scoped, per booking | Staff (already exists as `pro_notes` on Booking) | "Used #4 blade", "matting behind ears" |
+
+- [x] `business_pet` pivot table with business-scoped notes, difficulty rating, and last_seen_at
+- [x] `BusinessPet` model with relationships and factory
+- [x] `Business::pets()` BelongsToMany, `Pet::businesses()` BelongsToMany, `Pet::businessNotes()` HasMany
+- [x] `CustomerRegistrationService` — find-or-create user by email when a business adds a customer
+- [x] If stub user already exists, reuse it (pets and history follow the person across businesses)
+- [x] If no match, create a stub user (`is_registered = false`)
+- [x] Handle account upgrade: `upgradeStubUser()` sets `is_registered = true`, password, `email_verified_at`
+- [x] `linkPetToBusiness()` — updateOrCreate on business_pet with notes and last_seen_at
+- [x] Updated PetSeeder with BusinessPet records
+- [x] 19 new tests (6 model, 11 service, 2 data isolation) — 128 total passing
+
+### Phase 2d: Schema Hardening - COMPLETE
+
+> Post-retrospective fixes identified from a full audit of Phase 2a–2c.
+
+**Missing indexes (performance at scale):**
+- [x] `bookings[business_id, status, appointment_datetime]` — dashboard/calendar queries
+- [x] `bookings[business_id, appointment_datetime]` — upcoming/past scopes
+- [x] `customers[user_id]` — `CustomerRegistrationService` lookups
+- [x] `transactions[business_id, status, created_at]` — financial reporting
+- [x] `sms_log[business_id, status, created_at]` — quota checks after every SMS
+- [x] `email_log[business_id, status, created_at]` — delivery tracking
+- [x] `reviews[business_id, is_flagged]` — moderation queue
+
+**Data integrity:**
+- [x] Unique constraints on `businesses.stripe_customer_id` and `businesses.stripe_subscription_id`
+- [x] Add soft deletes to `Booking`, `Customer`, `Service`, `StaffMember`
+
+**Code fixes:**
+- [x] Batch `Customer.updateFromBooking()` into a single query (was 4 queries, now 1)
+- [x] Move `AvailabilityService` overlap detection from PHP to database interval query (`isTimeSlotAvailable` now uses direct DB queries; `getAvailableSlots` keeps bulk-fetch for efficiency)
+- [x] Refactor `StaffMember.working_locations` from JSON array to `staff_location` junction table with `BelongsToMany` relationship
+- [x] 10 new tests (4 soft deletes, 2 batched query, 4 junction table) — 138 total passing
+
+**Architecture decision: Customer/User denormalization — RESOLVED (Option A)**
+
+`Customer` keeps its own `name`, `email`, `phone` as business-local data. `User` is the platform identity. These are intentionally separate contexts: a customer booking through heyBertie (marketplace) doesn't imply the business uses heyBertie to manage their CRM. Businesses can add customers manually (walk-ins, phone) with standalone records. The `user_id` FK links the two for cross-business identity, but each business controls their own customer data independently.
 
 ---
 

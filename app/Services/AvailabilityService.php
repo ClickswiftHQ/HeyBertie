@@ -7,6 +7,7 @@ use App\Models\Booking;
 use App\Models\Location;
 use App\Models\StaffMember;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class AvailabilityService
 {
@@ -15,18 +16,7 @@ class AvailabilityService
      */
     public function getAvailableSlots(Location $location, Carbon $date, ?StaffMember $staff = null, int $durationMinutes = 60): array
     {
-        $blocks = AvailabilityBlock::query()
-            ->where('business_id', $location->business_id)
-            ->where(function ($q) use ($location) {
-                $q->where('location_id', $location->id)->orWhereNull('location_id');
-            })
-            ->when($staff, function ($q) use ($staff) {
-                $q->where(function ($q) use ($staff) {
-                    $q->where('staff_member_id', $staff->id)->orWhereNull('staff_member_id');
-                });
-            })
-            ->forDate($date)
-            ->get();
+        $blocks = $this->getBlocksForDate($location, $date, $staff);
 
         $availableBlocks = $blocks->where('block_type', 'available');
         $blockedBlocks = $blocks->whereIn('block_type', ['break', 'blocked', 'holiday']);
@@ -38,12 +28,12 @@ class AvailabilityService
             ->when($staff, fn ($q) => $q->where('staff_member_id', $staff->id))
             ->get();
 
+        $bufferMinutes = $location->booking_buffer_minutes;
         $slots = [];
 
         foreach ($availableBlocks as $block) {
             $startMinutes = $this->timeToMinutes($block->start_time);
             $endMinutes = $this->timeToMinutes($block->end_time);
-            $bufferMinutes = $location->booking_buffer_minutes;
 
             for ($time = $startMinutes; $time + $durationMinutes <= $endMinutes; $time += 30) {
                 $slotStart = $date->copy()->startOfDay()->addMinutes($time);
@@ -53,7 +43,7 @@ class AvailabilityService
                     continue;
                 }
 
-                if ($this->hasConflictingBooking($bookings, $slotStart, $slotEnd, $bufferMinutes)) {
+                if ($this->collectionHasConflict($bookings, $slotStart, $slotEnd, $bufferMinutes)) {
                     continue;
                 }
 
@@ -69,17 +59,66 @@ class AvailabilityService
 
     public function isTimeSlotAvailable(Location $location, Carbon $datetime, int $duration, ?StaffMember $staff = null): bool
     {
-        $slots = $this->getAvailableSlots($location, $datetime->copy()->startOfDay(), $staff, $duration);
+        $date = $datetime->copy()->startOfDay();
+        $slotTime = $datetime->format('H:i');
+        $slotEndTime = $datetime->copy()->addMinutes($duration)->format('H:i');
+        $buffer = $location->booking_buffer_minutes;
 
-        $requestedTime = $datetime->format('H:i');
+        $blockQuery = AvailabilityBlock::query()
+            ->where('business_id', $location->business_id)
+            ->where(function ($q) use ($location) {
+                $q->where('location_id', $location->id)->orWhereNull('location_id');
+            })
+            ->when($staff, function ($q) use ($staff) {
+                $q->where(function ($q) use ($staff) {
+                    $q->where('staff_member_id', $staff->id)->orWhereNull('staff_member_id');
+                });
+            })
+            ->forDate($date);
 
-        foreach ($slots as $slot) {
-            if ($slot['time'] === $requestedTime) {
-                return true;
-            }
+        $hasAvailableBlock = (clone $blockQuery)
+            ->where('block_type', 'available')
+            ->where('start_time', '<=', $slotTime)
+            ->where('end_time', '>=', $slotEndTime)
+            ->exists();
+
+        if (! $hasAvailableBlock) {
+            return false;
         }
 
-        return false;
+        $isBlocked = (clone $blockQuery)
+            ->whereIn('block_type', ['break', 'blocked', 'holiday'])
+            ->where('start_time', '<', $slotEndTime)
+            ->where('end_time', '>', $slotTime)
+            ->exists();
+
+        if ($isBlocked) {
+            return false;
+        }
+
+        $slotStart = $datetime;
+        $slotEnd = $datetime->copy()->addMinutes($duration);
+
+        return ! $this->queryHasConflict($location, $slotStart, $slotEnd, $buffer, $staff);
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Collection<int, AvailabilityBlock>
+     */
+    private function getBlocksForDate(Location $location, Carbon $date, ?StaffMember $staff = null): \Illuminate\Database\Eloquent\Collection
+    {
+        return AvailabilityBlock::query()
+            ->where('business_id', $location->business_id)
+            ->where(function ($q) use ($location) {
+                $q->where('location_id', $location->id)->orWhereNull('location_id');
+            })
+            ->when($staff, function ($q) use ($staff) {
+                $q->where(function ($q) use ($staff) {
+                    $q->where('staff_member_id', $staff->id)->orWhereNull('staff_member_id');
+                });
+            })
+            ->forDate($date)
+            ->get();
     }
 
     private function timeToMinutes(string $time): int
@@ -90,7 +129,7 @@ class AvailabilityService
     }
 
     /**
-     * @param \Illuminate\Support\Collection<int, AvailabilityBlock> $blockedBlocks
+     * @param  \Illuminate\Support\Collection<int, AvailabilityBlock>  $blockedBlocks
      */
     private function isBlockedAt($blockedBlocks, Carbon $start, Carbon $end): bool
     {
@@ -107,9 +146,11 @@ class AvailabilityService
     }
 
     /**
-     * @param \Illuminate\Support\Collection<int, Booking> $bookings
+     * Check booking conflicts using a pre-fetched collection (for getAvailableSlots).
+     *
+     * @param  \Illuminate\Support\Collection<int, Booking>  $bookings
      */
-    private function hasConflictingBooking($bookings, Carbon $start, Carbon $end, int $buffer): bool
+    private function collectionHasConflict($bookings, Carbon $start, Carbon $end, int $buffer): bool
     {
         foreach ($bookings as $booking) {
             $bookingStart = $booking->appointment_datetime;
@@ -121,5 +162,33 @@ class AvailabilityService
         }
 
         return false;
+    }
+
+    /**
+     * Check booking conflicts using a database interval query (for single-slot checks).
+     */
+    private function queryHasConflict(Location $location, Carbon $start, Carbon $end, int $buffer, ?StaffMember $staff): bool
+    {
+        $driver = DB::connection()->getDriverName();
+
+        $query = Booking::query()
+            ->where('location_id', $location->id)
+            ->whereNotIn('status', ['cancelled'])
+            ->when($staff, fn ($q) => $q->where('staff_member_id', $staff->id))
+            ->where('appointment_datetime', '<', $end);
+
+        if ($driver === 'sqlite') {
+            $query->whereRaw(
+                "datetime(appointment_datetime, '+' || (duration_minutes + ?) || ' minutes') > ?",
+                [$buffer, $start->toDateTimeString()]
+            );
+        } else {
+            $query->whereRaw(
+                "appointment_datetime + ((duration_minutes + ?) * interval '1 minute') > ?",
+                [$buffer, $start->toDateTimeString()]
+            );
+        }
+
+        return $query->exists();
     }
 }

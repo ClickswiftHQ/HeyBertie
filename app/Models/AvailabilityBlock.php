@@ -7,6 +7,47 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property int $id
+ * @property int $business_id
+ * @property int|null $location_id
+ * @property int|null $staff_member_id
+ * @property int|null $day_of_week
+ * @property string $start_time
+ * @property string $end_time
+ * @property \Carbon\CarbonImmutable|null $specific_date
+ * @property string $block_type
+ * @property bool $repeat_weekly
+ * @property string|null $notes
+ * @property \Carbon\CarbonImmutable|null $created_at
+ * @property \Carbon\CarbonImmutable|null $updated_at
+ * @property-read \App\Models\Business $business
+ * @property-read \App\Models\Location|null $location
+ * @property-read \App\Models\StaffMember|null $staffMember
+ *
+ * @method static Builder<static>|AvailabilityBlock available()
+ * @method static Builder<static>|AvailabilityBlock blocked()
+ * @method static Builder<static>|AvailabilityBlock forDate(\Carbon\Carbon $date)
+ * @method static Builder<static>|AvailabilityBlock forDayOfWeek(int $day)
+ * @method static Builder<static>|AvailabilityBlock newModelQuery()
+ * @method static Builder<static>|AvailabilityBlock newQuery()
+ * @method static Builder<static>|AvailabilityBlock query()
+ * @method static Builder<static>|AvailabilityBlock whereBlockType($value)
+ * @method static Builder<static>|AvailabilityBlock whereBusinessId($value)
+ * @method static Builder<static>|AvailabilityBlock whereCreatedAt($value)
+ * @method static Builder<static>|AvailabilityBlock whereDayOfWeek($value)
+ * @method static Builder<static>|AvailabilityBlock whereEndTime($value)
+ * @method static Builder<static>|AvailabilityBlock whereId($value)
+ * @method static Builder<static>|AvailabilityBlock whereLocationId($value)
+ * @method static Builder<static>|AvailabilityBlock whereNotes($value)
+ * @method static Builder<static>|AvailabilityBlock whereRepeatWeekly($value)
+ * @method static Builder<static>|AvailabilityBlock whereSpecificDate($value)
+ * @method static Builder<static>|AvailabilityBlock whereStaffMemberId($value)
+ * @method static Builder<static>|AvailabilityBlock whereStartTime($value)
+ * @method static Builder<static>|AvailabilityBlock whereUpdatedAt($value)
+ *
+ * @mixin \Eloquent
+ */
 class AvailabilityBlock extends Model
 {
     protected $fillable = [

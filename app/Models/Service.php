@@ -7,11 +7,59 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * @property int $id
+ * @property int $business_id
+ * @property int|null $location_id
+ * @property string $name
+ * @property string|null $description
+ * @property int $duration_minutes
+ * @property numeric|null $price
+ * @property string $price_type
+ * @property int $display_order
+ * @property bool $is_active
+ * @property bool $is_featured
+ * @property \Carbon\CarbonImmutable|null $created_at
+ * @property \Carbon\CarbonImmutable|null $updated_at
+ * @property \Carbon\CarbonImmutable|null $deleted_at
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Booking> $bookings
+ * @property-read int|null $bookings_count
+ * @property-read \App\Models\Business $business
+ * @property-read \App\Models\Location|null $location
+ *
+ * @method static Builder<static>|Service active()
+ * @method static \Database\Factories\ServiceFactory factory($count = null, $state = [])
+ * @method static Builder<static>|Service featured()
+ * @method static Builder<static>|Service forLocation(\App\Models\Location $location)
+ * @method static Builder<static>|Service newModelQuery()
+ * @method static Builder<static>|Service newQuery()
+ * @method static Builder<static>|Service onlyTrashed()
+ * @method static Builder<static>|Service query()
+ * @method static Builder<static>|Service whereBusinessId($value)
+ * @method static Builder<static>|Service whereCreatedAt($value)
+ * @method static Builder<static>|Service whereDeletedAt($value)
+ * @method static Builder<static>|Service whereDescription($value)
+ * @method static Builder<static>|Service whereDisplayOrder($value)
+ * @method static Builder<static>|Service whereDurationMinutes($value)
+ * @method static Builder<static>|Service whereId($value)
+ * @method static Builder<static>|Service whereIsActive($value)
+ * @method static Builder<static>|Service whereIsFeatured($value)
+ * @method static Builder<static>|Service whereLocationId($value)
+ * @method static Builder<static>|Service whereName($value)
+ * @method static Builder<static>|Service wherePrice($value)
+ * @method static Builder<static>|Service wherePriceType($value)
+ * @method static Builder<static>|Service whereUpdatedAt($value)
+ * @method static Builder<static>|Service withTrashed(bool $withTrashed = true)
+ * @method static Builder<static>|Service withoutTrashed()
+ *
+ * @mixin \Eloquent
+ */
 class Service extends Model
 {
     /** @use HasFactory<\Database\Factories\ServiceFactory> */
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'business_id',
