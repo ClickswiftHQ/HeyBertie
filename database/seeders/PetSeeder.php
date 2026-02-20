@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Breed;
+use App\Models\BusinessPet;
 use App\Models\Customer;
 use App\Models\Pet;
 use App\Models\SizeCategory;
@@ -19,13 +20,13 @@ class PetSeeder extends Seeder
         $dogBreeds = Breed::where('species_id', $dogSpecies->id)->get();
         $sizeCategories = SizeCategory::all();
 
-        $customers = Customer::with('user')->get();
+        $customers = Customer::with('user', 'business')->get();
 
         foreach ($customers as $customer) {
             $petCount = fake()->numberBetween(1, 2);
 
             for ($i = 0; $i < $petCount; $i++) {
-                Pet::create([
+                $pet = Pet::create([
                     'user_id' => $customer->user_id,
                     'name' => fake()->randomElement($petNames),
                     'species_id' => $dogSpecies->id,
@@ -34,6 +35,14 @@ class PetSeeder extends Seeder
                     'birthday' => fake()->boolean(60) ? fake()->dateTimeBetween('-15 years', '-6 months') : null,
                     'notes' => fake()->boolean(20) ? fake()->sentence() : null,
                     'is_active' => true,
+                ]);
+
+                BusinessPet::create([
+                    'business_id' => $customer->business_id,
+                    'pet_id' => $pet->id,
+                    'notes' => fake()->boolean(30) ? fake()->sentence() : null,
+                    'difficulty_rating' => fake()->boolean(40) ? fake()->numberBetween(1, 5) : null,
+                    'last_seen_at' => fake()->boolean(70) ? fake()->dateTimeBetween('-6 months', 'now') : null,
                 ]);
             }
         }

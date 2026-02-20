@@ -10,6 +10,93 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * @property int $id
+ * @property string $name
+ * @property string $handle
+ * @property string $slug
+ * @property string|null $description
+ * @property string|null $logo_url
+ * @property string|null $cover_image_url
+ * @property string|null $phone
+ * @property string|null $email
+ * @property string|null $website
+ * @property \Carbon\CarbonImmutable|null $trial_ends_at
+ * @property string|null $stripe_customer_id
+ * @property string|null $stripe_subscription_id
+ * @property string $verification_status
+ * @property string|null $verification_notes
+ * @property \Carbon\CarbonImmutable|null $verified_at
+ * @property int $owner_user_id
+ * @property bool $is_active
+ * @property array<array-key, mixed>|null $settings
+ * @property \Carbon\CarbonImmutable|null $created_at
+ * @property \Carbon\CarbonImmutable|null $updated_at
+ * @property \Carbon\CarbonImmutable|null $deleted_at
+ * @property int $subscription_tier_id
+ * @property int $subscription_status_id
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Booking> $bookings
+ * @property-read int|null $bookings_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Customer> $customers
+ * @property-read int|null $customers_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\HandleChange> $handleChanges
+ * @property-read int|null $handle_changes_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Location> $locations
+ * @property-read int|null $locations_count
+ * @property-read \App\Models\User $owner
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Pet> $pets
+ * @property-read int|null $pets_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Review> $reviews
+ * @property-read int|null $reviews_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Service> $services
+ * @property-read int|null $services_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\StaffMember> $staffMembers
+ * @property-read int|null $staff_members_count
+ * @property-read \App\Models\SubscriptionStatus $subscriptionStatus
+ * @property-read \App\Models\SubscriptionTier $subscriptionTier
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Transaction> $transactions
+ * @property-read int|null $transactions_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\User> $users
+ * @property-read int|null $users_count
+ *
+ * @method static Builder<static>|Business active()
+ * @method static \Database\Factories\BusinessFactory factory($count = null, $state = [])
+ * @method static Builder<static>|Business newModelQuery()
+ * @method static Builder<static>|Business newQuery()
+ * @method static Builder<static>|Business onTrial()
+ * @method static Builder<static>|Business onlyTrashed()
+ * @method static Builder<static>|Business query()
+ * @method static Builder<static>|Business tier(string $tierSlug)
+ * @method static Builder<static>|Business verified()
+ * @method static Builder<static>|Business whereCoverImageUrl($value)
+ * @method static Builder<static>|Business whereCreatedAt($value)
+ * @method static Builder<static>|Business whereDeletedAt($value)
+ * @method static Builder<static>|Business whereDescription($value)
+ * @method static Builder<static>|Business whereEmail($value)
+ * @method static Builder<static>|Business whereHandle($value)
+ * @method static Builder<static>|Business whereId($value)
+ * @method static Builder<static>|Business whereIsActive($value)
+ * @method static Builder<static>|Business whereLogoUrl($value)
+ * @method static Builder<static>|Business whereName($value)
+ * @method static Builder<static>|Business whereOwnerUserId($value)
+ * @method static Builder<static>|Business wherePhone($value)
+ * @method static Builder<static>|Business whereSettings($value)
+ * @method static Builder<static>|Business whereSlug($value)
+ * @method static Builder<static>|Business whereStripeCustomerId($value)
+ * @method static Builder<static>|Business whereStripeSubscriptionId($value)
+ * @method static Builder<static>|Business whereSubscriptionStatusId($value)
+ * @method static Builder<static>|Business whereSubscriptionTierId($value)
+ * @method static Builder<static>|Business whereTrialEndsAt($value)
+ * @method static Builder<static>|Business whereUpdatedAt($value)
+ * @method static Builder<static>|Business whereVerificationNotes($value)
+ * @method static Builder<static>|Business whereVerificationStatus($value)
+ * @method static Builder<static>|Business whereVerifiedAt($value)
+ * @method static Builder<static>|Business whereWebsite($value)
+ * @method static Builder<static>|Business withTrashed(bool $withTrashed = true)
+ * @method static Builder<static>|Business withoutTrashed()
+ *
+ * @mixin \Eloquent
+ */
 class Business extends Model
 {
     /** @use HasFactory<\Database\Factories\BusinessFactory> */
@@ -147,6 +234,16 @@ class Business extends Model
     public function handleChanges(): HasMany
     {
         return $this->hasMany(HandleChange::class);
+    }
+
+    /**
+     * @return BelongsToMany<Pet, $this>
+     */
+    public function pets(): BelongsToMany
+    {
+        return $this->belongsToMany(Pet::class)
+            ->withPivot('notes', 'difficulty_rating', 'last_seen_at')
+            ->withTimestamps();
     }
 
     /**

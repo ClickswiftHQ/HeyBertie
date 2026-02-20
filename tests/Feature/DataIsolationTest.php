@@ -2,6 +2,7 @@
 
 use App\Models\Booking;
 use App\Models\Business;
+use App\Models\BusinessPet;
 use App\Models\BusinessRole;
 use App\Models\Customer;
 use App\Models\Location;
@@ -110,4 +111,49 @@ it('pets belong to users not customers', function () {
     Pet::factory()->count(2)->create(['user_id' => $user->id]);
 
     expect($user->pets)->toHaveCount(2);
+});
+
+it('isolates business-pet notes between businesses', function () {
+    $user = User::factory()->create();
+    $pet = Pet::factory()->create(['user_id' => $user->id]);
+    $business1 = Business::factory()->create();
+    $business2 = Business::factory()->create();
+
+    BusinessPet::factory()->create([
+        'business_id' => $business1->id,
+        'pet_id' => $pet->id,
+        'notes' => 'Groomer 1 private notes',
+        'difficulty_rating' => 2,
+    ]);
+
+    BusinessPet::factory()->create([
+        'business_id' => $business2->id,
+        'pet_id' => $pet->id,
+        'notes' => 'Groomer 2 private notes',
+        'difficulty_rating' => 4,
+    ]);
+
+    $business1Notes = BusinessPet::where('business_id', $business1->id)->where('pet_id', $pet->id)->first();
+    $business2Notes = BusinessPet::where('business_id', $business2->id)->where('pet_id', $pet->id)->first();
+
+    expect($business1Notes->notes)->toBe('Groomer 1 private notes')
+        ->and($business1Notes->difficulty_rating)->toBe(2)
+        ->and($business2Notes->notes)->toBe('Groomer 2 private notes')
+        ->and($business2Notes->difficulty_rating)->toBe(4);
+});
+
+it('scopes business pets correctly via relationship', function () {
+    $business1 = Business::factory()->create();
+    $business2 = Business::factory()->create();
+
+    $pet1 = Pet::factory()->create();
+    $pet2 = Pet::factory()->create();
+    $pet3 = Pet::factory()->create();
+
+    BusinessPet::factory()->create(['business_id' => $business1->id, 'pet_id' => $pet1->id]);
+    BusinessPet::factory()->create(['business_id' => $business1->id, 'pet_id' => $pet2->id]);
+    BusinessPet::factory()->create(['business_id' => $business2->id, 'pet_id' => $pet3->id]);
+
+    expect($business1->pets)->toHaveCount(2)
+        ->and($business2->pets)->toHaveCount(1);
 });
