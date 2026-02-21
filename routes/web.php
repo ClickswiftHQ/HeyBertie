@@ -1,13 +1,16 @@
 <?php
 
 use App\Http\Controllers\BusinessController;
+use App\Http\Controllers\Dashboard\DashboardController;
 use App\Http\Controllers\OnboardingController;
+use App\Models\Business;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::view('/', 'marketing.home')->name('home');
 
-Route::get('join', function (\Illuminate\Http\Request $request) {
+Route::get('join', function (Request $request) {
     if ($request->user()) {
         return redirect()->route('onboarding.index');
     }
@@ -19,8 +22,20 @@ Route::get('join', function (\Illuminate\Http\Request $request) {
     ]);
 })->name('join');
 
-Route::get('dashboard', function () {
-    return Inertia::render('dashboard');
+// Dashboard redirect — resolves to user's primary business dashboard
+Route::get('dashboard', function (Request $request) {
+    $business = Business::query()
+        ->where('owner_user_id', $request->user()->id)
+        ->where('onboarding_completed', true)
+        ->where('is_active', true)
+        ->orderByDesc('created_at')
+        ->first();
+
+    if (! $business) {
+        return redirect()->route('onboarding.index');
+    }
+
+    return redirect()->route('business.dashboard', $business->handle);
 })->middleware(['auth', 'verified', 'onboarding.complete'])->name('dashboard');
 
 Route::middleware(['auth', 'verified'])->prefix('onboarding')->name('onboarding.')->group(function () {
@@ -45,6 +60,14 @@ Route::get('/@{handle}/{locationSlug}', fn (string $handle, string $locationSlug
 
 require __DIR__.'/settings.php';
 require __DIR__.'/statamic.php';
+
+// Business management routes (authenticated, handle-scoped)
+Route::middleware(['auth', 'verified', 'onboarding.complete', 'business.manage'])
+    ->where(['handle' => '[a-z0-9][a-z0-9-]*'])
+    ->group(function () {
+        Route::get('/{handle}/dashboard', DashboardController::class)
+            ->name('business.dashboard');
+    });
 
 // Vanity handle routes — MUST be LAST (catch-all-like pattern)
 Route::middleware('handle.redirect')->group(function () {

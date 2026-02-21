@@ -9,13 +9,33 @@ import AuthLayout from '@/layouts/auth-layout';
 import { login } from '@/routes';
 import { store } from '@/routes/register';
 
-export default function Register() {
+interface RegisterProps {
+    intent?: string | null;
+}
+
+export default function Register({ intent }: RegisterProps) {
+    const isBusiness = intent === 'business';
+
     return (
         <AuthLayout
-            title="Create an account"
-            description="Enter your details below to create your account"
+            title={
+                isBusiness
+                    ? 'List your business on heyBertie'
+                    : 'Create an account'
+            }
+            description={
+                isBusiness
+                    ? 'Create your account to get started with onboarding'
+                    : 'Enter your details below to create your account'
+            }
         >
-            <Head title="Register" />
+            <Head
+                title={
+                    isBusiness
+                        ? 'Join as a Business'
+                        : 'Register'
+                }
+            />
             <Form
                 {...store.form()}
                 resetOnSuccess={['password', 'password_confirmation']}

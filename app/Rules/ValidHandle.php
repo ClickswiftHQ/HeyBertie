@@ -26,6 +26,12 @@ class ValidHandle implements ValidationRule
         'contact',
         'blog',
         'pricing',
+        'join',
+        'onboarding',
+        'settings',
+        'knowledge-base',
+        'p',
+        'up',
     ];
 
     public function __construct(

@@ -61,6 +61,13 @@ class BusinessFactory extends Factory
         ]);
     }
 
+    public function completed(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'onboarding_completed' => true,
+        ]);
+    }
+
     public function suspended(): static
     {
         return $this->state(fn (array $attributes) => [

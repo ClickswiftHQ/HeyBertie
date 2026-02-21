@@ -30,6 +30,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property int $owner_user_id
  * @property bool $is_active
  * @property array<array-key, mixed>|null $settings
+ * @property array<array-key, mixed>|null $onboarding
+ * @property bool $onboarding_completed
  * @property \Carbon\CarbonImmutable|null $created_at
  * @property \Carbon\CarbonImmutable|null $updated_at
  * @property \Carbon\CarbonImmutable|null $deleted_at
@@ -95,6 +97,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @method static Builder<static>|Business withTrashed(bool $withTrashed = true)
  * @method static Builder<static>|Business withoutTrashed()
  *
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\VerificationDocument> $verificationDocuments
+ * @property-read int|null $verification_documents_count
+ *
+ * @method static Builder<static>|Business whereOnboarding($value)
+ * @method static Builder<static>|Business whereOnboardingCompleted($value)
+ *
  * @mixin \Eloquent
  */
 class Business extends Model
@@ -123,6 +131,8 @@ class Business extends Model
         'owner_user_id',
         'is_active',
         'settings',
+        'onboarding',
+        'onboarding_completed',
     ];
 
     /**
@@ -132,6 +142,8 @@ class Business extends Model
     {
         return [
             'settings' => 'array',
+            'onboarding' => 'array',
+            'onboarding_completed' => 'boolean',
             'verified_at' => 'datetime',
             'trial_ends_at' => 'datetime',
             'is_active' => 'boolean',
@@ -234,6 +246,22 @@ class Business extends Model
     public function handleChanges(): HasMany
     {
         return $this->hasMany(HandleChange::class);
+    }
+
+    /**
+     * @return HasMany<VerificationDocument, $this>
+     */
+    public function verificationDocuments(): HasMany
+    {
+        return $this->hasMany(VerificationDocument::class);
+    }
+
+    /**
+     * @return HasMany<BusinessPageView, $this>
+     */
+    public function pageViews(): HasMany
+    {
+        return $this->hasMany(BusinessPageView::class);
     }
 
     /**
