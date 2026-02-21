@@ -3,8 +3,8 @@
 namespace Database\Factories;
 
 use App\Models\Business;
+use App\Models\Location;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Str;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Location>
@@ -16,14 +16,16 @@ class LocationFactory extends Factory
      */
     public function definition(): array
     {
+        $town = fake()->streetName();
         $city = fake()->city();
 
         return [
             'business_id' => Business::factory(),
-            'name' => $city.' Salon',
-            'slug' => Str::slug($city),
+            'name' => $town.' Salon',
+            'slug' => Location::generateSlug($town, $city),
             'location_type' => 'salon',
             'address_line_1' => fake()->streetAddress(),
+            'town' => $town,
             'city' => $city,
             'postcode' => fake()->postcode(),
             'latitude' => fake()->latitude(51.3, 51.7),

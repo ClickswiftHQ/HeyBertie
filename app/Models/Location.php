@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 /**
  * @property int $id
@@ -17,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $location_type
  * @property string $address_line_1
  * @property string|null $address_line_2
+ * @property string $town
  * @property string $city
  * @property string $postcode
  * @property string|null $county
@@ -95,6 +97,7 @@ class Location extends Model
         'location_type',
         'address_line_1',
         'address_line_2',
+        'town',
         'city',
         'postcode',
         'county',
@@ -175,6 +178,18 @@ class Location extends Model
     public function availabilityBlocks(): HasMany
     {
         return $this->hasMany(AvailabilityBlock::class);
+    }
+
+    public static function generateSlug(string $town, string $city): string
+    {
+        $town = trim($town);
+        $city = trim($city);
+
+        if (mb_strtolower($town) === mb_strtolower($city)) {
+            return Str::slug($town);
+        }
+
+        return Str::slug($town.' '.$city);
     }
 
     /**
