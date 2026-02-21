@@ -212,7 +212,7 @@
                 Join thousands of pet professionals growing their business on heyBertie. Get discovered by local pet owners and manage your bookings in one place.
             </p>
             <div class="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-                <a href="{{ route('register') }}" class="w-full rounded-lg bg-gray-900 px-8 py-4 font-medium text-white hover:bg-gray-800 sm:w-auto">
+                <a href="{{ route('join') }}" class="w-full rounded-lg bg-gray-900 px-8 py-4 font-medium text-white hover:bg-gray-800 sm:w-auto">
                     Join as a Professional
                 </a>
                 <a href="#" class="w-full rounded-lg border-2 border-gray-900 px-8 py-4 font-medium text-gray-900 hover:bg-gray-50 sm:w-auto">

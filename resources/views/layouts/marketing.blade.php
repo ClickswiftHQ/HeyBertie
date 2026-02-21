@@ -3,13 +3,19 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="description" content="Find trusted pet groomers, dog walkers, and cat sitters near you. Compare reviews, check availability, and book instantly on heyBertie.">
+        @hasSection('meta_description')
+            <meta name="description" content="@yield('meta_description')">
+        @else
+            <meta name="description" content="Find trusted pet groomers, dog walkers, and cat sitters near you. Compare reviews, check availability, and book instantly on heyBertie.">
+        @endif
 
-        <title>{{ $title ?? 'heyBertie — Find Trusted Pet Services Near You' }}</title>
+        <title>@yield('title', 'heyBertie — Find Trusted Pet Services Near You')</title>
 
         <link rel="icon" href="/favicon.ico" sizes="any">
         <link rel="icon" href="/favicon.svg" type="image/svg+xml">
         <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+        @stack('head')
 
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700" rel="stylesheet" />
