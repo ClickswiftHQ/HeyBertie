@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Business;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -42,6 +43,48 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'currentBusiness' => fn () => $this->getCurrentBusiness($request),
+            'userBusinesses' => fn () => $this->getUserBusinesses($request),
         ];
+    }
+
+    /**
+     * @return array{id: int, name: string, handle: string, logo_url: string|null, subscription_tier: string}|null
+     */
+    private function getCurrentBusiness(Request $request): ?array
+    {
+        $business = $request->attributes->get('currentBusiness');
+        if (! $business) {
+            return null;
+        }
+
+        return [
+            'id' => $business->id,
+            'name' => $business->name,
+            'handle' => $business->handle,
+            'logo_url' => $business->logo_url,
+            'subscription_tier' => $business->subscriptionTier->slug ?? 'free',
+        ];
+    }
+
+    /**
+     * @return list<array{id: int, name: string, handle: string, logo_url: string|null}>
+     */
+    private function getUserBusinesses(Request $request): array
+    {
+        if (! $request->user()) {
+            return [];
+        }
+
+        return Business::query()
+            ->where('onboarding_completed', true)
+            ->where('is_active', true)
+            ->where(fn ($q) => $q
+                ->where('owner_user_id', $request->user()->id)
+                ->orWhereHas('users', fn ($q) => $q->where('user_id', $request->user()->id))
+            )
+            ->select(['id', 'name', 'handle', 'logo_url'])
+            ->get()
+            ->toArray();
     }
 }

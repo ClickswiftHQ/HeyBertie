@@ -1,6 +1,13 @@
-import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid } from 'lucide-react';
-import { NavFooter } from '@/components/nav-footer';
+import { usePage } from '@inertiajs/react';
+import {
+    Calendar,
+    Clock,
+    LayoutGrid,
+    ListChecks,
+    TrendingUp,
+    Users,
+} from 'lucide-react';
+import { BusinessSwitcher } from '@/components/business-switcher';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
@@ -8,56 +15,59 @@ import {
     SidebarContent,
     SidebarFooter,
     SidebarHeader,
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import type { NavItem } from '@/types';
-import AppLogo from './app-logo';
-import { dashboard } from '@/routes';
-
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-];
-
-const footerNavItems: NavItem[] = [
-    {
-        title: 'Repository',
-        href: 'https://github.com/laravel/react-starter-kit',
-        icon: Folder,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#react',
-        icon: BookOpen,
-    },
-];
 
 export function AppSidebar() {
+    const { currentBusiness } = usePage().props;
+    const handle = currentBusiness?.handle;
+
+    const mainNavItems: NavItem[] = handle
+        ? [
+              {
+                  title: 'Overview',
+                  href: `/${handle}/dashboard`,
+                  icon: LayoutGrid,
+              },
+              {
+                  title: 'Services',
+                  href: `/${handle}/services`,
+                  icon: ListChecks,
+              },
+              {
+                  title: 'Calendar',
+                  href: `/${handle}/calendar`,
+                  icon: Calendar,
+              },
+              {
+                  title: 'Customers',
+                  href: `/${handle}/customers`,
+                  icon: Users,
+              },
+              {
+                  title: 'Availability',
+                  href: `/${handle}/availability`,
+                  icon: Clock,
+              },
+              {
+                  title: 'Analytics',
+                  href: `/${handle}/analytics`,
+                  icon: TrendingUp,
+              },
+          ]
+        : [];
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" asChild>
-                            <Link href={dashboard()} prefetch>
-                                <AppLogo />
-                            </Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                </SidebarMenu>
+                <BusinessSwitcher />
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                <NavMain items={mainNavItems} label="Business" />
             </SidebarContent>
 
             <SidebarFooter>
-                <NavFooter items={footerNavItems} className="mt-auto" />
                 <NavUser />
             </SidebarFooter>
         </Sidebar>
