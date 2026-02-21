@@ -4,11 +4,20 @@ use App\Models\Business;
 use App\Models\HandleChange;
 use App\Models\Location;
 
-test('listing page returns 200 for active completed business', function () {
+test('single-location business redirects from handle to location URL', function () {
     $business = Business::factory()->completed()->create();
-    Location::factory()->create(['business_id' => $business->id]);
+    $location = Location::factory()->create(['business_id' => $business->id]);
 
     $this->get('/'.$business->handle)
+        ->assertRedirect('/'.$business->handle.'/'.$location->slug)
+        ->assertStatus(301);
+});
+
+test('single-location listing page returns 200 at location URL', function () {
+    $business = Business::factory()->completed()->create();
+    $location = Location::factory()->create(['business_id' => $business->id]);
+
+    $this->get('/'.$business->handle.'/'.$location->slug)
         ->assertSuccessful()
         ->assertViewIs('listing.show');
 });
@@ -109,15 +118,6 @@ test('listing page returns 404 for invalid location slug', function () {
 
     $this->get('/'.$business->handle.'/nonexistent-location')
         ->assertNotFound();
-});
-
-test('single-location business shows listing page at handle URL', function () {
-    $business = Business::factory()->completed()->create();
-    Location::factory()->create(['business_id' => $business->id]);
-
-    $this->get('/'.$business->handle)
-        ->assertSuccessful()
-        ->assertViewIs('listing.show');
 });
 
 test('multi-location business shows hub page at handle URL', function () {

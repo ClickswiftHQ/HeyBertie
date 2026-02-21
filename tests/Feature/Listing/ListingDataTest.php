@@ -7,11 +7,11 @@ use App\Models\Service;
 
 test('business data is loaded with correct relationships', function () {
     $business = Business::factory()->completed()->create();
-    Location::factory()->create(['business_id' => $business->id]);
+    $location = Location::factory()->create(['business_id' => $business->id]);
     Service::factory()->create(['business_id' => $business->id, 'is_active' => true]);
     Review::factory()->create(['business_id' => $business->id, 'is_published' => true]);
 
-    $this->get('/'.$business->handle)
+    $this->get('/'.$business->handle.'/'.$location->slug)
         ->assertSuccessful()
         ->assertViewIs('listing.show')
         ->assertViewHas('business')
@@ -23,32 +23,32 @@ test('business data is loaded with correct relationships', function () {
 
 test('only active services are returned', function () {
     $business = Business::factory()->completed()->create();
-    Location::factory()->create(['business_id' => $business->id]);
+    $location = Location::factory()->create(['business_id' => $business->id]);
     Service::factory()->create(['business_id' => $business->id, 'is_active' => true]);
     Service::factory()->create(['business_id' => $business->id, 'is_active' => false]);
 
-    $this->get('/'.$business->handle)
+    $this->get('/'.$business->handle.'/'.$location->slug)
         ->assertSuccessful()
         ->assertViewHas('services', fn ($s) => $s->count() === 1);
 });
 
 test('only published reviews are returned', function () {
     $business = Business::factory()->completed()->create();
-    Location::factory()->create(['business_id' => $business->id]);
+    $location = Location::factory()->create(['business_id' => $business->id]);
     Review::factory()->create(['business_id' => $business->id, 'is_published' => true]);
     Review::factory()->create(['business_id' => $business->id, 'is_published' => false]);
 
-    $this->get('/'.$business->handle)
+    $this->get('/'.$business->handle.'/'.$location->slug)
         ->assertSuccessful()
         ->assertViewHas('reviews', fn ($r) => $r->count() === 1);
 });
 
 test('reviews are limited to 10', function () {
     $business = Business::factory()->completed()->create();
-    Location::factory()->create(['business_id' => $business->id]);
+    $location = Location::factory()->create(['business_id' => $business->id]);
     Review::factory()->count(15)->create(['business_id' => $business->id, 'is_published' => true]);
 
-    $this->get('/'.$business->handle)
+    $this->get('/'.$business->handle.'/'.$location->slug)
         ->assertSuccessful()
         ->assertViewHas('reviews', fn ($r) => $r->count() === 10)
         ->assertViewHas('hasMoreReviews', true);
@@ -56,11 +56,11 @@ test('reviews are limited to 10', function () {
 
 test('rating aggregation is calculated correctly', function () {
     $business = Business::factory()->completed()->create();
-    Location::factory()->create(['business_id' => $business->id]);
+    $location = Location::factory()->create(['business_id' => $business->id]);
     Review::factory()->create(['business_id' => $business->id, 'rating' => 5, 'is_published' => true]);
     Review::factory()->create(['business_id' => $business->id, 'rating' => 3, 'is_published' => true]);
 
-    $this->get('/'.$business->handle)
+    $this->get('/'.$business->handle.'/'.$location->slug)
         ->assertSuccessful()
         ->assertViewHas('rating', fn ($r) => $r['average'] == 4
             && $r['count'] === 2
@@ -111,13 +111,13 @@ test('hub page returns business and locations data', function () {
         ->assertViewHas('canonicalUrl');
 });
 
-test('single-location has self-referencing canonical URL', function () {
+test('single-location canonical URL points to location URL', function () {
     $business = Business::factory()->completed()->create();
-    Location::factory()->create(['business_id' => $business->id]);
+    $location = Location::factory()->create(['business_id' => $business->id]);
 
-    $this->get('/'.$business->handle)
+    $this->get('/'.$business->handle.'/'.$location->slug)
         ->assertSuccessful()
-        ->assertViewHas('canonicalUrl', fn ($url) => str_ends_with($url, '/'.$business->handle));
+        ->assertViewHas('canonicalUrl', fn ($url) => str_ends_with($url, '/'.$business->handle.'/'.$location->slug));
 });
 
 test('location page has self-referencing canonical URL', function () {

@@ -15,17 +15,17 @@ class BusinessController extends Controller
         private SchemaMarkupService $schemaMarkupService,
     ) {}
 
-    public function show(string $handle): View
+    public function show(string $handle): View|RedirectResponse
     {
         $business = $this->loadBusiness($handle);
 
-        if ($business->locations->count() > 1) {
-            return $this->renderHub($business);
+        if ($business->locations->count() === 1) {
+            $location = $business->locations->first();
+
+            return redirect()->route('business.location', [$business->handle, $location->slug], 301);
         }
 
-        $location = $business->locations->first();
-
-        return $this->renderListing($business, $location);
+        return $this->renderHub($business);
     }
 
     public function showLocation(string $handle, string $locationSlug): View
@@ -117,9 +117,7 @@ class BusinessController extends Controller
 
         $tierSlug = $business->subscriptionTier->slug ?? 'free';
 
-        $canonicalUrl = $location->is_primary && ! $isMultiLocation
-            ? route('business.show', $business->handle)
-            : route('business.location', [$business->handle, $location->slug]);
+        $canonicalUrl = route('business.location', [$business->handle, $location->slug]);
 
         return view('listing.show', [
             'business' => $business,
