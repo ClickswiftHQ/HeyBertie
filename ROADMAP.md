@@ -16,12 +16,12 @@
 
 ---
 
-## Phase 1: Marketing Website - Homepage (Week 2)
+## Phase 1: Marketing Website - Homepage (Week 2) - COMPLETE
 
-- [ ] Marketing layout (header, footer, mobile menu, sticky header)
-- [ ] Homepage sections (hero, search, trust bar, how it works, services, cities, CTA)
-- [ ] Routes configuration
-- [ ] Responsive testing (mobile/tablet/desktop)
+- [x] Marketing layout (header, footer, mobile menu, sticky header)
+- [x] Homepage sections (hero, search, trust bar, how it works, services, cities, CTA)
+- [x] Routes configuration
+- [x] Responsive testing (mobile/tablet/desktop)
 
 ---
 
@@ -95,24 +95,44 @@
 
 ---
 
-## Phase 3: Professional Onboarding (Week 3-4)
+## Phase 3: Professional Onboarding (Week 3-4) - COMPLETE
 
 > **Detailed spec:** [`roadmap/phase-3-professional-onboarding.md`](roadmap/phase-3-professional-onboarding.md)
 
-- [ ] 7-step onboarding flow (Inertia + React)
-- [ ] Handle system (validation, uniqueness, reserved words)
-- [ ] Verification system (photo upload, admin review queue)
+- [x] 7-step onboarding flow (Inertia + React)
+- [x] Handle system (validation, uniqueness, reserved words)
+- [x] Verification system (photo upload, admin review queue)
 
 ---
 
-## Phase 4: Business Listing Page (Week 4-5)
+## Phase 4: Business Listing Page (Week 4-5) - COMPLETE
 
 > **Detailed spec:** [`roadmap/phase-4-business-listing-page.md`](roadmap/phase-4-business-listing-page.md)
 
-- [ ] Listing template (header, gallery, services, reviews, availability, CTA)
-- [ ] BusinessController (handle lookup, eager loading, analytics)
-- [ ] URL structure (`/@{handle}`, `/@{handle}/{location}`, canonical fallback)
-- [ ] Schema markup (LocalBusiness, Service, Review, Organization)
+- [x] Listing template (header, gallery, services, reviews, availability, CTA)
+- [x] BusinessController (handle lookup, eager loading, analytics)
+- [x] URL structure (`/{handle}`, `/{handle}/{location}`, `/p/{slug}-{id}` canonical redirect)
+- [x] Schema markup (LocalBusiness, Service, Review, Organization)
+
+### Phase 4a: Blade Listing Pages - COMPLETE
+
+- [x] Converted listing pages from Inertia/React to Blade (SEO: server-rendered HTML)
+- [x] Marketing layout with header, footer, Alpine.js interactivity
+- [x] Listing partials (header, about, services, reviews, location, contact, CTA, availability, share dialog)
+- [x] Location switcher for multi-location businesses
+- [x] Page view tracking (BusinessPageView, dedup within 30 min)
+- [x] SchemaMarkupService (LocalBusiness JSON-LD)
+- [x] HandleRedirect middleware (old handle → 301 to new handle)
+- [x] 34 tests (routes, data, schema, page views)
+
+### Phase 4b: Hub-and-Spoke Multi-Location SEO - COMPLETE
+
+- [x] Hub page at `/{handle}` for multi-location businesses (Organization schema, location cards grid)
+- [x] Self-referencing canonical URLs on each location page (`/{handle}/{slug}`)
+- [x] `branchOf` in LocalBusiness schema linking back to Organization hub
+- [x] `/p/{slug}-{id}` flipped parameter order, now 301 redirects to `/{handle}`
+- [x] Single-location businesses render full listing at `/{handle}` (unchanged)
+- [x] 34 tests (hub routing, canonical redirects, schema markup, self-referencing URLs)
 
 ---
 
@@ -127,12 +147,24 @@
 
 ---
 
+## Phase 5b: Location Town Column - COMPLETE
+
+- [x] Migration: `town` column on `locations`, unique `(business_id, slug)` index
+- [x] `Location::generateSlug(town, city)` — deduplicates when town equals city
+- [x] Onboarding flow: separate Town / Area and City fields
+- [x] Validation, controller, factory, 5 unit tests + updated feature tests (248 passing)
+
+---
+
 ## Phase 6: Search Results Page (Week 7-8)
 
-- [ ] Search results template (filters, grid, pagination, loading states)
-- [ ] SearchController (location, distance, price, rating, type filters)
-- [ ] Geocoding integration (postcode to lat/lng, distance calc)
-- [ ] SEO city pages (dynamic routes, meta tags)
+> **Detailed spec:** [`roadmap/phase-6-search-results-page.md`](roadmap/phase-6-search-results-page.md)
+
+- [ ] SearchController with geocoding, distance sort, filters
+- [ ] Search results Blade page (result cards, filters sidebar, pagination)
+- [ ] SearchService (location query, distance calculation, filtering)
+- [ ] SEO landing pages (`/dog-grooming-in-london`, `/{service}-in-{location}`)
+- [ ] Schema markup (SearchResultsPage, ItemList)
 
 ---
 
