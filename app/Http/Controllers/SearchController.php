@@ -6,6 +6,7 @@ use App\Http\Requests\SearchRequest;
 use App\Services\GeocodingService;
 use App\Services\SchemaMarkupService;
 use App\Services\SearchService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
 class SearchController extends Controller
@@ -16,11 +17,22 @@ class SearchController extends Controller
         private SchemaMarkupService $schemaMarkupService,
     ) {}
 
-    public function index(SearchRequest $request): View
+    public function index(SearchRequest $request): View|RedirectResponse
     {
         $locationInput = $request->validated('location');
         $service = $request->validated('service', 'dog-grooming');
         $serviceName = $this->searchService->serviceNames()[$service] ?? 'Dog Grooming';
+
+        // Redirect to SEO landing page if the location matches a known slug
+        $locationSlug = str($locationInput)->slug()->value();
+        $resolved = $this->searchService->resolveLocation($locationSlug);
+
+        if ($resolved && isset($this->searchService->serviceNames()[$service])) {
+            $landingSlug = $service.'-in-'.$locationSlug;
+            $filters = array_filter($request->only(['sort', 'rating', 'distance', 'type']));
+
+            return redirect()->to('/'.$landingSlug.($filters ? '?'.http_build_query($filters) : ''));
+        }
 
         $coords = $this->geocodingService->geocode($locationInput);
 

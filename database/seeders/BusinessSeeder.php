@@ -91,6 +91,7 @@ class BusinessSeeder extends Seeder
             $business = Business::create(array_merge($data, [
                 'owner_user_id' => $owner->id,
                 'is_active' => true,
+                'onboarding_completed' => true,
             ]));
 
             $business->users()->attach($owner->id, [

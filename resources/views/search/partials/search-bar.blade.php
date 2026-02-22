@@ -14,13 +14,7 @@
                 <option value="cat-sitting" {{ ($service ?? '') === 'cat-sitting' ? 'selected' : '' }}>Cat Sitting</option>
             </select>
 
-            <input
-                type="text"
-                name="location"
-                value="{{ $location ?? '' }}"
-                placeholder="e.g. London, SW1A"
-                class="w-full flex-1 rounded-lg border-2 border-gray-300 px-4 py-3 text-sm text-gray-900 focus:border-gray-900 focus:outline-none"
-            >
+            @include('search.partials.location-autocomplete', ['value' => $location ?? '', 'placeholder' => 'e.g. London, SW1A'])
 
             <button
                 type="submit"

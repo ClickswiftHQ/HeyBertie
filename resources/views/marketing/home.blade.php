@@ -16,8 +16,15 @@
                 action="/search"
                 method="GET"
                 class="mx-auto mt-10 max-w-3xl"
-                x-data="{ location: '', submitted: false }"
-                @submit="submitted = true; if (!location.trim()) { $event.preventDefault(); $refs.locationInput.focus(); }"
+                x-data
+                @submit="
+                    const input = $el.querySelector('input[name=location]');
+                    if (!input.value.trim()) {
+                        $event.preventDefault();
+                        Alpine.$data(input.closest('[x-data]')).validationFailed = true;
+                        input.focus();
+                    }
+                "
             >
                 <div class="flex flex-col gap-3 md:flex-row">
                     <select
@@ -29,24 +36,7 @@
                         <option value="cat-sitting">Cat Sitting</option>
                     </select>
 
-                    <div class="relative flex-1">
-                        <input
-                            type="text"
-                            name="location"
-                            placeholder="e.g. London, SW1A"
-                            x-model="location"
-                            x-ref="locationInput"
-                            class="w-full rounded-lg border-2 px-4 py-3 text-gray-900 focus:border-gray-900 focus:outline-none"
-                            :class="submitted && !location.trim() ? 'border-red-500' : 'border-gray-300'"
-                        >
-                        <p
-                            x-show="submitted && !location.trim()"
-                            x-cloak
-                            class="mt-1 text-left text-sm text-red-600"
-                        >
-                            Please enter a location.
-                        </p>
-                    </div>
+                    @include('search.partials.location-autocomplete', ['value' => '', 'placeholder' => 'e.g. London, SW1A'])
 
                     <input
                         type="date"
@@ -66,11 +56,11 @@
             {{-- Popular City Quick Links --}}
             <div class="mt-6 flex flex-wrap items-center justify-center gap-2 text-sm text-gray-500">
                 <span>Popular:</span>
-                <a href="/search?location=London" class="font-medium text-gray-700 underline hover:text-gray-900">London</a>
-                <a href="/search?location=Manchester" class="font-medium text-gray-700 underline hover:text-gray-900">Manchester</a>
-                <a href="/search?location=Birmingham" class="font-medium text-gray-700 underline hover:text-gray-900">Birmingham</a>
-                <a href="/search?location=Leeds" class="font-medium text-gray-700 underline hover:text-gray-900">Leeds</a>
-                <a href="/search?location=Bristol" class="font-medium text-gray-700 underline hover:text-gray-900">Bristol</a>
+                <a href="/dog-grooming-in-london" class="font-medium text-gray-700 underline hover:text-gray-900">London</a>
+                <a href="/dog-grooming-in-manchester" class="font-medium text-gray-700 underline hover:text-gray-900">Manchester</a>
+                <a href="/dog-grooming-in-birmingham" class="font-medium text-gray-700 underline hover:text-gray-900">Birmingham</a>
+                <a href="/dog-grooming-in-leeds" class="font-medium text-gray-700 underline hover:text-gray-900">Leeds</a>
+                <a href="/dog-grooming-in-bristol" class="font-medium text-gray-700 underline hover:text-gray-900">Bristol</a>
             </div>
         </div>
     </section>
@@ -159,7 +149,7 @@
             <h2 class="text-center text-3xl font-bold text-gray-900 md:text-4xl">Popular cities</h2>
             <div class="mt-12 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
                 @foreach (['London', 'Manchester', 'Birmingham', 'Leeds', 'Bristol', 'Liverpool', 'Edinburgh', 'Glasgow', 'Sheffield', 'Newcastle', 'Cardiff', 'Nottingham'] as $city)
-                    <a href="/search?location={{ urlencode($city) }}" class="rounded-lg border-2 border-gray-300 px-4 py-3 text-center text-sm font-medium text-gray-700 transition hover:border-gray-900 hover:text-gray-900">
+                    <a href="/dog-grooming-in-{{ Str::slug($city) }}" class="rounded-lg border-2 border-gray-300 px-4 py-3 text-center text-sm font-medium text-gray-700 transition hover:border-gray-900 hover:text-gray-900">
                         {{ $city }}
                     </a>
                 @endforeach

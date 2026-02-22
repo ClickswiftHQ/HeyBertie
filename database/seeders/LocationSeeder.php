@@ -13,14 +13,14 @@ class LocationSeeder extends Seeder
     {
         $locations = [
             // Muddy Paws - salon tier, multiple locations
-            ['business' => 'muddy-paws', 'name' => 'Fulham Salon', 'slug' => 'fulham', 'type' => 'salon', 'address' => '45 Lillie Road', 'city' => 'London', 'postcode' => 'SW6 1UD', 'lat' => 51.4823, 'lng' => -0.1953, 'primary' => true],
-            ['business' => 'muddy-paws', 'name' => 'Chelsea Branch', 'slug' => 'chelsea', 'type' => 'salon', 'address' => '112 Kings Road', 'city' => 'London', 'postcode' => 'SW3 4TW', 'lat' => 51.4879, 'lng' => -0.1660, 'primary' => false],
+            ['business' => 'muddy-paws', 'name' => 'Fulham Salon', 'slug' => 'fulham-london', 'type' => 'salon', 'address' => '45 Lillie Road', 'city' => 'London', 'postcode' => 'SW6 1UD', 'lat' => 51.4823, 'lng' => -0.1953, 'primary' => true],
+            ['business' => 'muddy-paws', 'name' => 'Chelsea Branch', 'slug' => 'chelsea-london', 'type' => 'salon', 'address' => '112 Kings Road', 'city' => 'London', 'postcode' => 'SW3 4TW', 'lat' => 51.4879, 'lng' => -0.1660, 'primary' => false],
 
             // Dog House Spa - solo tier
             ['business' => 'dog-house-spa', 'name' => 'Manchester Salon', 'slug' => 'manchester', 'type' => 'salon', 'address' => '78 Deansgate', 'city' => 'Manchester', 'postcode' => 'M3 2FW', 'lat' => 53.4808, 'lng' => -2.2426, 'primary' => true],
 
             // Pampered Pooch - mobile
-            ['business' => 'pampered-pooch', 'name' => 'Mobile Service - Greater Manchester', 'slug' => 'greater-manchester', 'type' => 'mobile', 'address' => '22 Oak Avenue', 'city' => 'Stockport', 'postcode' => 'SK1 3AA', 'lat' => 53.4106, 'lng' => -2.1575, 'primary' => true, 'mobile' => true, 'radius' => 15],
+            ['business' => 'pampered-pooch', 'name' => 'Mobile Service - Stockport', 'slug' => 'stockport-manchester', 'type' => 'mobile', 'address' => '22 Oak Avenue', 'city' => 'Stockport', 'postcode' => 'SK1 3AA', 'lat' => 53.4106, 'lng' => -2.1575, 'primary' => true, 'mobile' => true, 'radius' => 15],
 
             // Bark & Beautiful - free tier
             ['business' => 'bark-beautiful', 'name' => 'Bristol Studio', 'slug' => 'bristol', 'type' => 'salon', 'address' => '15 Whiteladies Road', 'city' => 'Bristol', 'postcode' => 'BS8 1PB', 'lat' => 51.4585, 'lng' => -2.6066, 'primary' => true],

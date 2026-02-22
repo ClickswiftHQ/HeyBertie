@@ -148,7 +148,7 @@ SearchController@landing
     |
 Parse slug: "dog-grooming" + "london" from "{service}-in-{location}"
     |
-Resolve location to coordinates (hardcoded city/town list, no API call)
+Resolve location to coordinates (geocode_cache table lookup, no external API call)
     |
 Same SearchService::search() pipeline
     |
@@ -207,6 +207,7 @@ class SearchController extends Controller
     public function __construct(
         private SearchService $searchService,
         private GeocodingService $geocodingService,
+        private SchemaMarkupService $schemaMarkupService,
     ) {}
 
     // GET /search?location=...&service=...&sort=...&rating=...&distance=...
@@ -217,7 +218,7 @@ class SearchController extends Controller
 }
 ```
 
-The `landing()` method parses the slug by splitting on `-in-` to extract the service and location parts, resolves the location to coordinates from the hardcoded lookup, and delegates to the same search pipeline.
+The `landing()` method parses the slug by splitting on `-in-` to extract the service and location parts, resolves the location to coordinates from the `geocode_cache` table, and delegates to the same search pipeline.
 
 ### Query Parameters (for `/search`)
 
@@ -236,27 +237,27 @@ Filters on landing pages also use query params (`/dog-grooming-in-london?sort=ra
 ### Tasks for Feature 1
 
 #### Task 1.1: Create SearchRequest Form Request
-- [ ] Create `app/Http/Requests/SearchRequest.php`
-- [ ] Validate: `location` required string, `service` optional in:dog-grooming,dog-walking,cat-sitting
-- [ ] Validate: `sort` optional in:distance,rating,price_low,price_high
-- [ ] Validate: `rating` optional integer 1-5
-- [ ] Validate: `distance` optional integer in:5,10,25,50
-- [ ] Validate: `type` optional in:salon,mobile,home_based
-- [ ] Custom messages for location.required
+- [x] Create `app/Http/Requests/SearchRequest.php`
+- [x] Validate: `location` required string, `service` optional in:dog-grooming,dog-walking,cat-sitting
+- [x] Validate: `sort` optional in:distance,rating,price_low,price_high
+- [x] Validate: `rating` optional integer 1-5
+- [x] Validate: `distance` optional integer in:5,10,25,50
+- [x] Validate: `type` optional in:salon,mobile,home_based
+- [x] Custom messages for location.required
 
 #### Task 1.2: Create SearchController
-- [ ] Create `app/Http/Controllers/SearchController.php`
-- [ ] `index()`: geocode location, call SearchService, return Blade view
-- [ ] `landing()`: parse slug (`{service}-in-{location}`), resolve location from hardcoded list, return Blade view with SEO meta
-- [ ] Handle geocoding failures gracefully (show "couldn't find location" message)
-- [ ] Handle invalid landing page slugs with 404
-- [ ] Pass current filter values back to view for form pre-population
+- [x] Create `app/Http/Controllers/SearchController.php`
+- [x] `index()`: geocode location, call SearchService, return Blade view
+- [x] `landing()`: parse slug (`{service}-in-{location}`), resolve location from `geocode_cache` table, return Blade view with SEO meta
+- [x] Handle geocoding failures gracefully (show "couldn't find location" message)
+- [x] Handle invalid landing page slugs with 404
+- [x] Pass current filter values back to view for form pre-population
 
 #### Task 1.3: Register Search Routes
-- [ ] Add `/search` route to `routes/web.php`
-- [ ] Add `/{slug}` landing page route with `-in-` regex constraint
-- [ ] Place both before handle catch-all route to avoid conflicts
-- [ ] Named routes: `search`, `search.landing`
+- [x] Add `/search` route to `routes/web.php`
+- [x] Add `/{slug}` landing page route with `-in-` regex constraint
+- [x] Place both before handle catch-all route to avoid conflicts
+- [x] Named routes: `search`, `search.landing`
 
 ---
 
@@ -312,74 +313,46 @@ ORDER BY distance ASC
 
 **Note:** SQLite does not support `acos`, `cos`, `sin`, `radians` natively. The service must detect the database driver and fall back to a bounding-box pre-filter + PHP-level Haversine for SQLite (used in tests), while using the raw SQL formula for MySQL/PostgreSQL in production.
 
-### Location Lookup Table
+### Location Lookup: `geocode_cache` Table
 
-Hardcoded array of UK cities and key towns with coordinates — avoids API calls for SEO landing pages. Town entries include their parent city for display purposes (e.g. "Fulham, London").
+Instead of a hardcoded array, location lookups use the `geocode_cache` table (49,256 UK towns/cities imported from CSV). This avoids external API calls for SEO landing pages while supporting every UK settlement out of the box.
 
 ```php
-private const LOCATIONS = [
-    // Major cities
-    'london'      => ['name' => 'London',      'latitude' => 51.5074, 'longitude' => -0.1278],
-    'manchester'  => ['name' => 'Manchester',  'latitude' => 53.4808, 'longitude' => -2.2426],
-    'birmingham'  => ['name' => 'Birmingham',  'latitude' => 52.4862, 'longitude' => -1.8904],
-    'leeds'       => ['name' => 'Leeds',       'latitude' => 53.8008, 'longitude' => -1.5491],
-    'bristol'     => ['name' => 'Bristol',     'latitude' => 51.4545, 'longitude' => -2.5879],
-    'liverpool'   => ['name' => 'Liverpool',   'latitude' => 53.4084, 'longitude' => -2.9916],
-    'edinburgh'   => ['name' => 'Edinburgh',   'latitude' => 55.9533, 'longitude' => -3.1883],
-    'glasgow'     => ['name' => 'Glasgow',     'latitude' => 55.8642, 'longitude' => -4.2518],
-    'sheffield'   => ['name' => 'Sheffield',   'latitude' => 53.3811, 'longitude' => -1.4701],
-    'cardiff'     => ['name' => 'Cardiff',     'latitude' => 51.4816, 'longitude' => -3.1791],
-    'nottingham'  => ['name' => 'Nottingham',  'latitude' => 52.9548, 'longitude' => -1.1581],
-    'newcastle'   => ['name' => 'Newcastle',   'latitude' => 54.9783, 'longitude' => -1.6178],
-    'brighton'    => ['name' => 'Brighton',    'latitude' => 50.8225, 'longitude' => -0.1372],
-    'cambridge'   => ['name' => 'Cambridge',   'latitude' => 52.2053, 'longitude' => 0.1218],
-    'oxford'      => ['name' => 'Oxford',      'latitude' => 51.7520, 'longitude' => -1.2577],
-    'bath'        => ['name' => 'Bath',        'latitude' => 51.3811, 'longitude' => -2.3590],
-    'york'        => ['name' => 'York',        'latitude' => 53.9591, 'longitude' => -1.0815],
-    'reading'     => ['name' => 'Reading',     'latitude' => 51.4543, 'longitude' => -0.9781],
-    'southampton' => ['name' => 'Southampton', 'latitude' => 50.9097, 'longitude' => -1.4044],
-    'belfast'     => ['name' => 'Belfast',     'latitude' => 54.5973, 'longitude' => -5.9301],
-
-    // London towns/areas (high search volume)
-    'fulham-london'      => ['name' => 'Fulham, London',      'latitude' => 51.4749, 'longitude' => -0.2010],
-    'chelsea-london'     => ['name' => 'Chelsea, London',     'latitude' => 51.4875, 'longitude' => -0.1687],
-    'camden-london'      => ['name' => 'Camden, London',      'latitude' => 51.5390, 'longitude' => -0.1426],
-    'islington-london'   => ['name' => 'Islington, London',   'latitude' => 51.5362, 'longitude' => -0.1033],
-    'hackney-london'     => ['name' => 'Hackney, London',     'latitude' => 51.5450, 'longitude' => -0.0553],
-    'clapham-london'     => ['name' => 'Clapham, London',     'latitude' => 51.4620, 'longitude' => -0.1380],
-    'brixton-london'     => ['name' => 'Brixton, London',     'latitude' => 51.4613, 'longitude' => -0.1156],
-    'wimbledon-london'   => ['name' => 'Wimbledon, London',   'latitude' => 51.4214, 'longitude' => -0.2064],
-    'greenwich-london'   => ['name' => 'Greenwich, London',   'latitude' => 51.4769, 'longitude' => -0.0005],
-    'richmond-london'    => ['name' => 'Richmond, London',    'latitude' => 51.4613, 'longitude' => -0.3037],
-
-    // Additional towns can be added over time as search demand grows
-];
+// SearchService::resolveLocation()
+$cached = GeocodeCache::where('slug', $slug)->first();
+// Returns: { name: "Fulham, London", latitude: 51.4749, longitude: -0.2010 }
 ```
 
-This table is intentionally extensible. New towns and cities can be added as we identify search demand from Google Search Console data. Each new entry automatically creates a landing page (no code changes needed).
+The `geocode_cache` slug convention matches the URL pattern:
+- Cities: `london`, `manchester`, `bristol`
+- Towns/areas: `fulham-london`, `chelsea-london`, `stockport-manchester`
+
+Every `geocode_cache` entry automatically creates a valid landing page (e.g. `/dog-grooming-in-fulham-london`). No code changes needed to add new locations — just insert a row into `geocode_cache`.
+
+The `/api/search-suggest` endpoint also queries `geocode_cache` to power the location autocomplete on both the homepage and search results page.
 
 ### Tasks for Feature 2
 
 #### Task 2.1: Create SearchService
-- [ ] Create `app/Services/SearchService.php`
-- [ ] `search()` method: builds query with Haversine distance, joins businesses, applies filters
-- [ ] Database driver detection: raw SQL Haversine for MySQL/PostgreSQL, bounding-box + PHP for SQLite
-- [ ] Filter: `distance` — HAVING distance <= N (or PHP filter for SQLite)
-- [ ] Filter: `rating` — subquery on reviews for avg rating >= N
-- [ ] Filter: `type` — locations.location_type IN (...)
-- [ ] Sort: `distance` (default), `rating` (avg desc), `price_low`/`price_high` (min service price)
-- [ ] Eager load: `business.subscriptionTier`, `business.reviews` (count only), primary location services
-- [ ] Paginate 12 per page, append query parameters
+- [x] Create `app/Services/SearchService.php`
+- [x] `search()` method: builds query with Haversine distance, joins businesses, applies filters
+- [x] Database driver detection: raw SQL Haversine for MySQL/PostgreSQL, bounding-box + PHP for SQLite
+- [x] Filter: `distance` — HAVING distance <= N (or PHP filter for SQLite)
+- [x] Filter: `rating` — subquery on reviews for avg rating >= N
+- [x] Filter: `type` — locations.location_type IN (...)
+- [x] Sort: `distance` (default), `rating` (avg desc), `price_low`/`price_high` (min service price)
+- [x] Eager load: `business.subscriptionTier`, `business.reviews` (count only), primary location services
+- [x] Paginate 12 per page, append query parameters
 
 #### Task 2.2: Add resolveLocation() Method
-- [ ] Hardcoded UK cities and towns array with coordinates
-- [ ] Slug-based lookup (lowercase, hyphenated): `london`, `fulham-london`, etc.
-- [ ] Return `{latitude, longitude, name}` or null
+- [x] Lookup via `geocode_cache` table (49,256 UK towns/cities) instead of hardcoded array
+- [x] Slug-based lookup (lowercase, hyphenated): `london`, `fulham-london`, etc.
+- [x] Return `{latitude, longitude, name}` or null
 
 #### Task 2.3: Add Rating Subquery
-- [ ] Subquery to calculate average rating per business from published reviews
-- [ ] Used for both filtering (min rating) and sorting (by rating desc)
-- [ ] Businesses with no reviews sort after rated businesses when sorting by rating
+- [x] Subquery to calculate average rating per business from published reviews
+- [x] Used for both filtering (min rating) and sorting (by rating desc)
+- [x] Businesses with no reviews sort after rated businesses when sorting by rating
 
 ---
 
@@ -451,21 +424,22 @@ return view('search.results', [
 ### Tasks for Feature 3
 
 #### Task 3.1: Create Search Results View
-- [ ] Create `resources/views/search/results.blade.php` extending `layouts.marketing`
-- [ ] Search bar at top (pre-populated with current query)
-- [ ] Results count heading: "12 dog groomers near Fulham"
-- [ ] Sort dropdown (Distance, Rating, Price low-high, Price high-low)
-- [ ] Two-column layout: filters sidebar (left) + results grid (right)
-- [ ] Mobile: single column, filters in collapsible drawer (Alpine.js)
-- [ ] Pagination (Laravel default, styled with Tailwind)
-- [ ] Meta tags: `<title>`, `<meta description>`, Open Graph, canonical URL
-- [ ] JSON-LD schema injection
+- [x] Create `resources/views/search/results.blade.php` extending `layouts.marketing`
+- [x] Search bar at top (pre-populated with current query)
+- [x] Results count heading: "12 dog groomers near Fulham"
+- [x] Sort dropdown (Distance, Rating, Price low-high, Price high-low)
+- [x] Two-column layout: filters sidebar (left) + results grid (right)
+- [x] Mobile: single column, filters in collapsible drawer (Alpine.js)
+- [x] Pagination (Laravel default, styled with Tailwind)
+- [x] Meta tags: `<title>`, `<meta description>`, Open Graph, canonical URL
+- [x] JSON-LD schema injection
 
 #### Task 3.2: Create Search Bar Partial
-- [ ] Create `resources/views/search/partials/search-bar.blade.php`
-- [ ] Reusable search form (same fields as homepage but horizontal/compact)
-- [ ] Pre-populate from current query parameters
-- [ ] Submit re-runs search (GET request)
+- [x] Create `resources/views/search/partials/search-bar.blade.php`
+- [x] Reusable search form (same fields as homepage but horizontal/compact)
+- [x] Pre-populate from current query parameters
+- [x] Submit re-runs search (GET request)
+- [x] Location autocomplete partial (`search/partials/location-autocomplete.blade.php`) with Alpine.js, debounced `/api/search-suggest` calls, keyboard navigation, ARIA attributes
 
 ---
 
@@ -503,17 +477,17 @@ Each result card receives:
 ### Tasks for Feature 4
 
 #### Task 4.1: Create Result Card Partial
-- [ ] Create `resources/views/search/partials/result-card.blade.php`
-- [ ] Logo with fallback placeholder (first letter of business name)
-- [ ] Business name as link to listing page (`/{handle}/{location-slug}`)
-- [ ] Star rating display (filled stars + count)
-- [ ] Location type badge (Salon / Mobile / Home-based)
-- [ ] Town, City display
-- [ ] Distance in km (rounded to 1 decimal: "0.3 km", "2.1 km")
-- [ ] Verification badge (checkmark if verified)
-- [ ] Top 2 services with price formatting
-- [ ] "View" link to listing page
-- [ ] Responsive: horizontal card on desktop, stacked on mobile
+- [x] Create `resources/views/search/partials/result-card.blade.php`
+- [x] Logo with fallback placeholder (first letter of business name)
+- [x] Business name as link to listing page (`/{handle}/{location-slug}`)
+- [x] Star rating display (filled stars + count)
+- [x] Location type badge (Salon / Mobile / Home-based)
+- [x] Town, City display
+- [x] Distance in km (rounded to 1 decimal: "0.3 km", "2.1 km")
+- [x] Verification badge (checkmark if verified)
+- [x] Top 2 services with price formatting
+- [x] "View" link to listing page
+- [x] Responsive: horizontal card on desktop, stacked on mobile
 
 ---
 
@@ -543,19 +517,19 @@ Refine search results by location type, minimum rating, and distance radius. Fil
 ### Tasks for Feature 5
 
 #### Task 5.1: Create Filter Sidebar Partial
-- [ ] Create `resources/views/search/partials/filters.blade.php`
-- [ ] Location type checkboxes (salon, mobile, home_based)
-- [ ] Min rating radio buttons (4, 3, null)
-- [ ] Distance radio buttons (5, 10, 25, 50)
-- [ ] "Clear All" link
-- [ ] Alpine.js: auto-submit on change
-- [ ] Pre-select current filter values from query params
+- [x] Create `resources/views/search/partials/filters.blade.php`
+- [x] Location type checkboxes (salon, mobile, home_based)
+- [x] Min rating radio buttons (4, 3, null)
+- [x] Distance radio buttons (5, 10, 25, 50)
+- [x] "Clear All" link
+- [x] Alpine.js: auto-submit on change
+- [x] Pre-select current filter values from query params
 
 #### Task 5.2: Create Mobile Filter Drawer
-- [ ] "Filters" button visible on mobile only
-- [ ] Slide-out drawer with filter controls
-- [ ] "Apply" button closes drawer and submits
-- [ ] Alpine.js for open/close state
+- [x] "Filters" button visible on mobile only
+- [x] Slide-out drawer with filter controls
+- [x] "Apply" button closes drawer and submits
+- [x] Alpine.js for open/close state
 
 ---
 
@@ -603,7 +577,7 @@ Town-level pages (higher intent, lower competition):
 | H1 | "12 dog groomers near Fulham" | "Dog Grooming in London" |
 | Description | Generic | SEO-optimised with result count |
 | Canonical | Self-referencing | Self-referencing |
-| Coordinates | From geocoding API | From hardcoded location list (no API call) |
+| Coordinates | From geocoding API | From `geocode_cache` table (no external API call) |
 | Indexed | `noindex` (dynamic query results) | Indexed (static landing page) |
 | Internal links | None | Cross-linked from other landing pages, footer, homepage |
 
@@ -627,29 +601,29 @@ The `landing()` method splits the slug on the **last** occurrence of `-in-` to e
 "cat-sitting-in-camden-london"   → service: "cat-sitting",   location: "camden-london"
 ```
 
-Both parts are validated against the `SERVICES` and `LOCATIONS` constants. Invalid combinations return 404.
+The service is validated against the `SERVICES` constant and the location is looked up in the `geocode_cache` table. Invalid combinations return 404.
 
 ### Tasks for Feature 6
 
 #### Task 6.1: Add Landing Page Route
-- [ ] Route: `GET /{slug}` with regex constraint `[a-z-]+-in-[a-z-]+`
-- [ ] Parse slug into service and location parts (split on last `-in-`)
-- [ ] Validate service slug against `SERVICES` constant
-- [ ] Validate location slug against `LOCATIONS` constant
-- [ ] 404 for invalid service or location combinations
+- [x] Route: `GET /{slug}` with regex constraint `[a-z-]+-in-[a-z-]+`
+- [x] Parse slug into service and location parts (split on last `-in-`)
+- [x] Validate service slug against `SERVICES` constant
+- [x] Validate location slug against `geocode_cache` table
+- [x] 404 for invalid service or location combinations
 
 #### Task 6.2: SEO Meta Generation
-- [ ] Dynamic `<title>`: "{Service} in {Location} - Find & Book | heyBertie"
-- [ ] Dynamic `<meta description>` with result count
-- [ ] Self-referencing canonical URL
+- [x] Dynamic `<title>`: "{Service} in {Location} - Find & Book | heyBertie"
+- [x] Dynamic `<meta description>` with result count
+- [x] Self-referencing canonical URL
 - [ ] Open Graph tags
 - [ ] `<meta name="robots" content="index, follow">` (landing pages ARE indexed)
-- [ ] Pass meta data to Blade view
+- [x] Pass meta data to Blade view
 
 #### Task 6.3: Internal Cross-Linking
 - [ ] "Related areas" section at bottom of landing pages linking to nearby locations
 - [ ] "Other services" section linking to other service types in same location
-- [ ] Update homepage popular city links to use new URL pattern
+- [x] Update homepage popular city links to use new URL pattern (`/dog-grooming-in-{city}`)
 - [ ] Builds a crawlable internal link network (following TrustATrader's pattern)
 
 ---
@@ -699,11 +673,11 @@ Structured data for Google rich results on search pages.
 ### Tasks for Feature 7
 
 #### Task 7.1: Extend SchemaMarkupService
-- [ ] Add `generateForSearchResults()` method to existing `SchemaMarkupService`
-- [ ] Generate `SearchResultsPage` schema
-- [ ] Generate `ItemList` with `ListItem` entries for each result
-- [ ] Each `ListItem.item` is a simplified `LocalBusiness` with name, URL, address, rating
-- [ ] Limit to first page of results (12 items max in schema)
+- [x] Add `generateForSearchResults()` method to existing `SchemaMarkupService`
+- [x] Generate `SearchResultsPage` schema
+- [x] Generate `ItemList` with `ListItem` entries for each result
+- [x] Each `ListItem.item` is a simplified `LocalBusiness` with name, URL, address, rating
+- [x] Limit to first page of results (12 items max in schema)
 
 ---
 
@@ -744,15 +718,15 @@ Structured data for Google rich results on search pages.
 ### Tasks for Feature 8
 
 #### Task 8.1: Create Empty State Partial
-- [ ] Create `resources/views/search/partials/no-results.blade.php`
-- [ ] Suggestions for broadening search
-- [ ] Links to popular city pages
-- [ ] Shown when paginator has 0 results
+- [x] Create `resources/views/search/partials/no-results.blade.php`
+- [x] Suggestions for broadening search
+- [x] Links to popular city pages
+- [x] Shown when paginator has 0 results
 
 #### Task 8.2: Create Geocoding Error Partial
-- [ ] Create `resources/views/search/partials/location-error.blade.php`
-- [ ] Helpful messaging about accepted location formats
-- [ ] Shown when geocoding returns null
+- [x] Create `resources/views/search/partials/location-error.blade.php`
+- [x] Helpful messaging about accepted location formats
+- [x] Shown when geocoding returns null
 
 ---
 
@@ -761,82 +735,84 @@ Structured data for Google rich results on search pages.
 ### Feature Tests
 
 #### Search Route Tests
-- [ ] `tests/Feature/Search/SearchRouteTest.php`
-  - [ ] Test: `GET /search?location=London` returns 200
-  - [ ] Test: `GET /search` without location returns validation error / redirects back
-  - [ ] Test: `GET /search?location=London&sort=rating` returns sorted results
-  - [ ] Test: `GET /search?location=London&type=salon` filters by type
-  - [ ] Test: `GET /search?location=London&rating=4` filters by min rating
-  - [ ] Test: `GET /dog-grooming-in-london` returns 200
-  - [ ] Test: `GET /dog-grooming-in-fulham-london` returns 200 (town-level)
-  - [ ] Test: `GET /dog-grooming-in-invalid-city` returns 404
-  - [ ] Test: `GET /invalid-service-in-london` returns 404
-  - [ ] Test: Inactive businesses excluded from results
-  - [ ] Test: Businesses without completed onboarding excluded
+- [x] `tests/Feature/Search/SearchRouteTest.php`
+  - [x] Test: `GET /search?location=London` returns 200
+  - [x] Test: `GET /search` without location returns validation error / redirects back
+  - [x] Test: `GET /search?location=London&sort=rating` returns sorted results
+  - [x] Test: `GET /search?location=London&type=salon` filters by type
+  - [x] Test: `GET /search?location=London&rating=4` filters by min rating
+  - [x] Test: `GET /dog-grooming-in-london` returns 200
+  - [x] Test: `GET /dog-grooming-in-fulham-london` returns 200 (town-level)
+  - [x] Test: `GET /dog-grooming-in-invalid-city` returns 404
+  - [x] Test: `GET /invalid-service-in-london` returns 404
+  - [x] Test: Inactive businesses excluded from results
+  - [x] Test: Businesses without completed onboarding excluded
 
 #### Search Result Tests
-- [ ] `tests/Feature/Search/SearchResultTest.php`
-  - [ ] Test: Results sorted by distance (default)
-  - [ ] Test: Results sorted by rating when requested
-  - [ ] Test: Distance filter excludes far-away results
-  - [ ] Test: Rating filter excludes low-rated businesses
-  - [ ] Test: Type filter returns only matching location types
-  - [ ] Test: Results paginated (12 per page)
-  - [ ] Test: Result cards contain expected data (name, rating, distance, services)
+- [x] `tests/Feature/Search/SearchResultTest.php`
+  - [x] Test: Results sorted by distance (default)
+  - [x] Test: Results sorted by rating when requested
+  - [x] Test: Distance filter excludes far-away results
+  - [x] Test: Rating filter excludes low-rated businesses
+  - [x] Test: Type filter returns only matching location types
+  - [x] Test: Results paginated (12 per page)
+  - [x] Test: Result cards contain expected data (name, rating, distance, services)
 
 #### Schema Markup Tests
-- [ ] `tests/Feature/Search/SearchSchemaTest.php`
-  - [ ] Test: Search results page includes SearchResultsPage schema
-  - [ ] Test: ItemList schema contains correct number of items
-  - [ ] Test: Landing page has correct meta title and description
-  - [ ] Test: Town-level landing page includes town in title
+- [x] `tests/Feature/Search/SearchSchemaTest.php`
+  - [x] Test: Search results page includes SearchResultsPage schema
+  - [x] Test: ItemList schema contains correct number of items
+  - [x] Test: Landing page has correct meta title and description
+  - [x] Test: Town-level landing page includes town in title
 
 ### Unit Tests
 
-- [ ] `tests/Unit/Services/SearchServiceTest.php`
-  - [ ] Test: resolveLocation returns coordinates for known city
-  - [ ] Test: resolveLocation returns coordinates for known town (e.g. `fulham-london`)
-  - [ ] Test: resolveLocation returns null for unknown location
-  - [ ] Test: search returns results within distance radius
-  - [ ] Test: search excludes results beyond distance radius
-  - [ ] Test: search filters by location type
-  - [ ] Test: search filters by minimum rating
-  - [ ] Test: search sorts by distance by default
-  - [ ] Test: search sorts by rating when requested
+- [x] `tests/Unit/Services/SearchServiceTest.php`
+  - [x] Test: resolveLocation returns coordinates for known city
+  - [x] Test: resolveLocation returns coordinates for known town (e.g. `fulham-london`)
+  - [x] Test: resolveLocation returns null for unknown location
+  - [x] Test: search returns results within distance radius
+  - [x] Test: search excludes results beyond distance radius
+  - [x] Test: search filters by location type
+  - [x] Test: search filters by minimum rating
+  - [x] Test: search sorts by distance by default
+  - [x] Test: search sorts by rating when requested
 
 ---
 
 ## Final Checklist
 
 ### Routes
-- [ ] `GET /search` → `SearchController@index` (named: `search`)
-- [ ] `GET /{slug}` → `SearchController@landing` (named: `search.landing`, regex: `[a-z-]+-in-[a-z-]+`)
+- [x] `GET /search` → `SearchController@index` (named: `search`)
+- [x] `GET /{slug}` → `SearchController@landing` (named: `search.landing`, regex: `[a-z-]+-in-[a-z-]+`)
 
 ### Controllers
-- [ ] `SearchController` (new)
+- [x] `SearchController`
 
 ### Form Requests
-- [ ] `SearchRequest` (new)
+- [x] `SearchRequest`
 
 ### Services
-- [ ] `SearchService` (new)
-- [ ] `SchemaMarkupService` (updated — add `generateForSearchResults()`)
+- [x] `SearchService`
+- [x] `SchemaMarkupService` (updated — `generateForSearchResults()`)
 
 ### Blade Views
-- [ ] `search/results.blade.php` (new — main results page)
-- [ ] `search/partials/search-bar.blade.php` (new)
-- [ ] `search/partials/result-card.blade.php` (new)
-- [ ] `search/partials/filters.blade.php` (new)
-- [ ] `search/partials/no-results.blade.php` (new)
-- [ ] `search/partials/location-error.blade.php` (new)
+- [x] `search/results.blade.php` (main results page)
+- [x] `search/partials/search-bar.blade.php`
+- [x] `search/partials/result-card.blade.php`
+- [x] `search/partials/filters.blade.php`
+- [x] `search/partials/no-results.blade.php`
+- [x] `search/partials/location-error.blade.php`
+- [x] `search/partials/location-autocomplete.blade.php` (Alpine.js autocomplete, shared with homepage)
 
 ### Tests
-- [ ] `SearchRouteTest` (feature)
-- [ ] `SearchResultTest` (feature)
-- [ ] `SearchSchemaTest` (feature)
-- [ ] `SearchServiceTest` (unit)
+- [x] `SearchRouteTest` (feature)
+- [x] `SearchResultTest` (feature)
+- [x] `SearchSchemaTest` (feature)
+- [x] `SearchServiceTest` (unit)
+- [x] `SearchSuggestTest` (feature — `/api/search-suggest` endpoint)
 
 ### Dependencies
-- [ ] No new packages required
-- [ ] Uses existing `GeocodingService`, `SchemaMarkupService`
-- [ ] Existing `locations.latitude_longitude_index` supports the Haversine query
+- [x] No new packages required
+- [x] Uses existing `GeocodingService`, `SchemaMarkupService`
+- [x] Existing `locations.latitude_longitude_index` supports the Haversine query
