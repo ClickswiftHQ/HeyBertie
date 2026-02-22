@@ -66,6 +66,22 @@ test('step 4 validates UK postcode format', function () {
     ])->assertSessionHasErrors('postcode');
 });
 
+test('step 4 normalises postcode before validation', function () {
+    $this->post(route('onboarding.store', 1), ['business_type' => 'salon']);
+    $this->post(route('onboarding.store', 2), ['name' => 'Test']);
+    $this->post(route('onboarding.store', 3), ['handle' => 'test-normalise']);
+
+    $this->post(route('onboarding.store', 4), [
+        'address_line_1' => '1 Street',
+        'town' => 'Fulham',
+        'city' => 'London',
+        'postcode' => 'sw1a1aa',
+    ])->assertSessionDoesntHaveErrors('postcode');
+
+    $business = \App\Models\Business::where('owner_user_id', $this->user->id)->first();
+    expect($business->onboarding['location']['postcode'])->toBe('SW1A 1AA');
+});
+
 test('step 5 requires at least one service', function () {
     $this->post(route('onboarding.store', 1), ['business_type' => 'salon']);
     $this->post(route('onboarding.store', 2), ['name' => 'Test']);

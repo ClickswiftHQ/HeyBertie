@@ -2,13 +2,19 @@
 
 use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\Dashboard\DashboardController;
+use App\Http\Controllers\MarketingController;
 use App\Http\Controllers\OnboardingController;
+use App\Http\Controllers\PostcodeLookupController;
+use App\Http\Controllers\SearchController;
 use App\Models\Business;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::view('/', 'marketing.home')->name('home');
+
+Route::get('for-dog-groomers', [MarketingController::class, 'forDogGroomers'])
+    ->name('marketing.for-dog-groomers');
 
 Route::get('join', function (Request $request) {
     if ($request->user()) {
@@ -60,6 +66,17 @@ Route::get('/@{handle}/{locationSlug}', fn (string $handle, string $locationSlug
 
 require __DIR__.'/settings.php';
 require __DIR__.'/statamic.php';
+
+// Postcode lookup API
+Route::get('/api/postcode-lookup/{postcode}', PostcodeLookupController::class)
+    ->name('postcode.lookup')
+    ->middleware('throttle:60,1');
+
+// Search routes
+Route::get('/search', [SearchController::class, 'index'])->name('search');
+Route::get('/{slug}', [SearchController::class, 'landing'])
+    ->where('slug', '[a-z-]+-in-[a-z-]+')
+    ->name('search.landing');
 
 // Business management routes (authenticated, handle-scoped)
 Route::middleware(['auth', 'verified', 'onboarding.complete', 'business.manage'])

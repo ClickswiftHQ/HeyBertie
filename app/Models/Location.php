@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\PostcodeFormatter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -89,6 +90,17 @@ class Location extends Model
 {
     /** @use HasFactory<\Database\Factories\LocationFactory> */
     use HasFactory;
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::saving(function (Location $location) {
+            if ($location->postcode) {
+                $location->postcode = PostcodeFormatter::format($location->postcode);
+            }
+        });
+    }
 
     protected $fillable = [
         'business_id',

@@ -4,82 +4,92 @@
 
 ## Where we left off
 
-**Phase 3 (Professional Onboarding) is complete.** The full 7-step onboarding wizard is functional with backend, frontend, and tests. Two post-implementation improvements were also made: folder reorganization for multi-vertical support and a `/join` business registration route.
+**Address & Geocoding Strategy — rework in progress.** We implemented the initial plan (PostcodeFormatter, postcode normalisation, postcodes table, ONSPD import, GeocodingService updates, PostcodeLookupController, Find Address in onboarding). Then we rethought the architecture and decided to rework it. The rework is planned but **not yet implemented**.
 
-Next task is **Phase 4: Business Listing Page** (see `roadmap/phase-4-business-listing-page.md`, which the user opened at end of session).
+## What was implemented (and is still in the codebase)
 
-## Phase 3 status
+All of this was built and tests pass (304 tests):
 
-| Item | Status |
+| File | Status |
 |------|--------|
-| 3a: Backend (migrations, models, service, controller, form requests, middleware, routes) | Complete |
-| 3b: Frontend (layout, components, 7 step pages + review) | Complete |
-| Folder reorganization (shared/ + grooming/ for multi-vertical) | Complete |
-| `/join` business registration route | Complete |
-| Email verification enforcement (`MustVerifyEmail`) | Complete |
-| `onboarding.complete` middleware on dashboard | Complete |
+| `app/Support/PostcodeFormatter.php` | **New** — `format()` and `isValid()` static methods. KEEP. |
+| `app/Models/Location.php` | **Modified** — `boot()` saving event normalises postcodes. KEEP. |
+| `app/Http/Requests/Onboarding/StoreLocationRequest.php` | **Modified** — `prepareForValidation()` normalises postcode. KEEP. |
+| `database/migrations/2026_02_21_221145_normalise_existing_postcodes.php` | **New** — fixes existing location postcodes. KEEP. |
+| `database/migrations/2026_02_21_221146_create_postcodes_table.php` | **New** — creates `postcodes` table. **REPLACE** with cache tables. |
+| `app/Console/Commands/ImportPostcodesCommand.php` | **New** — ONSPD CSV import. **DELETE** — no longer needed. |
+| `app/Services/GeocodingService.php` | **Modified** — checks local postcodes table + city names via SearchService. **REWORK** to use cache models. |
+| `app/Http/Controllers/PostcodeLookupController.php` | **New** — `GET /api/postcode-lookup/{postcode}`. KEEP. |
+| `routes/web.php` | **Modified** — added postcode lookup route. KEEP. |
+| `resources/js/pages/onboarding/grooming/step-4-location.tsx` | **Modified** — Find Address button + address dropdown. KEEP. |
+| `tests/Unit/Support/PostcodeFormatterTest.php` | **New** — 16 tests. KEEP. |
+| `tests/Feature/Search/SearchGeocodingTest.php` | **New** — 5 tests. **UPDATE** for new cache tables. |
+| `tests/Feature/PostcodeLookupTest.php` | **New** — 3 tests. KEEP (mocks GeocodingService). |
+| `tests/Feature/Onboarding/StepValidationTest.php` | **Modified** — added postcode normalisation test. KEEP. |
 
-**182 tests passing (44 onboarding tests).** All migrations, formatting, and builds clean.
+## The rework: what needs to change
 
-## What was done in Phase 3
+### Problem with current approach
 
-### Backend
-- **2 migrations:** `onboarding` JSON + `onboarding_completed` boolean on businesses; `verification_documents` table
-- **VerificationDocument model** with factory, scopes (`pending`, `approved`, `rejected`, `ofType`)
-- **OnboardingService** — 7-step state machine: `createDraft`, `saveStep`, `getCurrentStep`, `canAccessStep`, `finalize` (DB transaction creating Location, Services, business_user pivot, subscription)
-- **7 Form Request classes** in `app/Http/Requests/Onboarding/`
-- **OnboardingController** — `index`, `show`, `store`, `checkHandle`, `review`, `submit`
-- **EnsureOnboardingComplete middleware** — redirects users with draft businesses to onboarding
-- **Custom RegisterResponse** (`app/Http/Responses/RegisterResponse.php`) — checks session for `registration_intent=business`, redirects to `/onboarding` instead of `/dashboard`
+1. The `postcodes` table (ONSPD import, 1.7M rows) is unnecessary — postcode lookups via Ideal Postcodes API are paid per-use anyway, so we should cache results as they come in, not pre-load a massive dataset.
+2. The hardcoded city list in `SearchService::LOCATIONS` (~30 entries) is too limited for search.
+3. Ideal Postcodes API **cannot geocode city/town names** — it only handles postcodes.
 
-### Frontend (resources/js/pages/onboarding/)
-- **shared/** — step-1-business-type, step-3-handle, step-6-verification, step-7-plan, review
-- **grooming/** — step-2-business-details, step-4-location, step-5-services
-- **Layout** (`onboarding-layout.tsx`) — clean layout with progress bar, save & exit
-- **Components** — `progress-bar.tsx`, `step-navigation.tsx`
+### Two new cache tables
 
-### Routes
-- `GET/POST /onboarding/step/{step}` — 7-step wizard
-- `POST /onboarding/check-handle` — real-time handle availability (throttled)
-- `GET /onboarding/review` + `POST /onboarding/submit` — review and finalize
-- `GET /join` — business registration entry point (sets session intent, renders register page with business branding)
+**`geocode_cache`** — search term → lat/lng (powers the search page)
+- `query` (string, primary key — normalised lowercase)
+- `display_name` (string — e.g. "London", "SW1A 1AA")
+- `latitude` / `longitude` (decimal)
+- `created_at` / `updated_at`
+- Seeded with the 30 hardcoded cities from `SearchService::LOCATIONS`
+- Grows as postcodes are searched (API result cached here too)
 
-### Key fixes applied during implementation
-- **Stale onboarding data:** Added `$business->refresh()` after step-specific save in `saveStep()`
-- **Draft UNIQUE constraint:** Draft businesses use `draft-{random}` for handle/slug to avoid collisions
-- **Email verification:** Enabled `MustVerifyEmail` on User model (was commented out)
-- **Post-verification redirect:** `onboarding.complete` middleware on dashboard catches users who verified email after `/join` registration
+**`address_cache`** — postcode → full address rows (powers onboarding "Find Address")
+- `id` (auto-increment)
+- `postcode` (string, indexed — normalised e.g. "SW1A 1AA")
+- `line_1`, `line_2`, `line_3`, `post_town`, `county` (strings)
+- `latitude` / `longitude` (decimal)
+- `created_at` / `updated_at`
+- Each row is one address. A postcode has many rows.
+- Populated when a user looks up a postcode via the API. Never paid for twice.
 
-## Key decisions made
+### Late finding: townslist.co.uk dataset
 
-- **Multi-vertical folder structure:** Onboarding pages split into `shared/` (generic) and `grooming/` (vertical-specific). Controller resolves which page to render. Future verticals get their own subfolder.
-- **`/join` vs `/register`:** `/join` is the business registration path. Sets `registration_intent=business` in session. Same form, different copy ("List your business on heyBertie"). After registration → email verification → dashboard → `onboarding.complete` middleware → onboarding.
-- **Homepage "Join as a Professional" button** now points to `/join` route.
+Found https://www.townslist.co.uk/ — a comprehensive UK towns/cities dataset. Sample at `storage/data/uk-towns-sample.csv` (~1,800 rows in sample, full dataset presumably larger). Each row has:
 
-## Files created/modified this session
+- `name` — town/city/village name (e.g. "Guildford", "Abberton")
+- `county`, `country` — for disambiguation ("Abberton, Essex" vs "Abberton, Worcestershire")
+- `latitude`, `longitude` — exactly what geocode_cache needs
+- `type` — Village, Suburban Area, Hamlet, Locality etc.
 
-### New files
-- `app/Http/Controllers/OnboardingController.php`
-- `app/Http/Middleware/EnsureOnboardingComplete.php`
-- `app/Http/Requests/Onboarding/Store*.php` (7 files)
-- `app/Http/Responses/RegisterResponse.php`
-- `app/Models/VerificationDocument.php`
-- `app/Services/OnboardingService.php`
-- `database/factories/VerificationDocumentFactory.php`
-- `database/migrations/*_add_onboarding_to_businesses_table.php`
-- `database/migrations/*_create_verification_documents_table.php`
-- `resources/js/layouts/onboarding-layout.tsx`
-- `resources/js/components/onboarding/progress-bar.tsx`
-- `resources/js/components/onboarding/step-navigation.tsx`
-- `resources/js/pages/onboarding/shared/*.tsx` (5 files)
-- `resources/js/pages/onboarding/grooming/*.tsx` (3 files)
-- `tests/Feature/Onboarding/*.php` (4 test files)
+**This changes everything.** We can seed `geocode_cache` with this dataset instead of just 30 hardcoded cities. Every UK town/village gets lat/lng for free, no API needed.
 
-### Modified files
-- `app/Models/Business.php` — onboarding fields, verificationDocuments relationship
-- `app/Models/User.php` — implements MustVerifyEmail
-- `app/Providers/FortifyServiceProvider.php` — custom RegisterResponse binding, intent prop on register view
-- `bootstrap/app.php` — onboarding.complete middleware alias
-- `routes/web.php` — onboarding routes, /join route, onboarding.complete on dashboard
-- `resources/js/pages/auth/register.tsx` — accepts intent prop, business-specific copy
-- `resources/views/marketing/home.blade.php` — "Join as a Professional" → /join
+### Revised search approach (decide tomorrow)
+
+With the townslist data, the hybrid distinction may no longer be needed. The search flow becomes uniform:
+
+1. User types anything ("London", "Guildford", "Fulham") → match in `geocode_cache` (seeded from townslist) → get lat/lng → radius-based search with distance sorting
+2. User types a postcode ("SW1A 1AA") → not in `geocode_cache` → Ideal Postcodes API → cache in `geocode_cache` + `address_cache` → radius-based search
+
+All searches use the same lat/lng + radius path. No separate text-matching logic needed. The townslist dataset eliminates the need for Nominatim, and the `geocode_cache` still grows over time from postcode lookups.
+
+**Questions to resolve:**
+- Do we buy the full townslist dataset or is the sample enough?
+- Do we need autocomplete/typeahead on the search input? (The geocode_cache would power suggestions as the user types)
+- How to handle ambiguity (e.g. two "Abberton" entries — show "Abberton, Essex" vs "Abberton, Worcestershire")?
+
+## Plan file
+
+The detailed implementation plan is at: `.claude/plans/glowing-meandering-patterson.md`
+
+It currently describes the cache table rework (Steps 1-7, file changes, test updates, verification). It does **not** yet include the search approach decision (hybrid vs text-only). Update the plan once the search approach is decided.
+
+## Key files to review when resuming
+
+- `app/Services/GeocodingService.php` — needs rework
+- `app/Services/SearchService.php` — has `LOCATIONS` const and `resolveLocation()`
+- `app/Http/Controllers/SearchController.php` — `index()` and `landing()` methods
+- `tests/Feature/Search/SearchRouteTest.php` — will need geocode_cache seeding
+- `tests/Feature/Search/SearchSchemaTest.php` — will need geocode_cache seeding
+- `tests/Unit/Services/SearchServiceTest.php` — will need to move to Feature + seed DB

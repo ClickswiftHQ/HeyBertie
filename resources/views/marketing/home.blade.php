@@ -215,7 +215,7 @@
                 <a href="{{ route('join') }}" class="w-full rounded-lg bg-gray-900 px-8 py-4 font-medium text-white hover:bg-gray-800 sm:w-auto">
                     Join as a Professional
                 </a>
-                <a href="#" class="w-full rounded-lg border-2 border-gray-900 px-8 py-4 font-medium text-gray-900 hover:bg-gray-50 sm:w-auto">
+                <a href="{{ route('marketing.for-dog-groomers') }}" class="w-full rounded-lg border-2 border-gray-900 px-8 py-4 font-medium text-gray-900 hover:bg-gray-50 sm:w-auto">
                     Learn More
                 </a>
             </div>

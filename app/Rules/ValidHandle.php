@@ -67,6 +67,18 @@ class ValidHandle implements ValidationRule
             return;
         }
 
+        if (str_starts_with($value, 'for-')) {
+            $fail('The :attribute ":input" is reserved and cannot be used.');
+
+            return;
+        }
+
+        if (preg_match('/^[a-z-]+-in-[a-z-]+$/', $value)) {
+            $fail('The :attribute ":input" is reserved and cannot be used.');
+
+            return;
+        }
+
         if (in_array($value, self::RESERVED_WORDS, true)) {
             $fail('The :attribute ":input" is reserved and cannot be used.');
 

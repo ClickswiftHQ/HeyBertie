@@ -35,19 +35,44 @@
 
                 {{-- Desktop Nav --}}
                 <nav class="hidden items-center gap-8 md:flex">
-                    <a href="#" class="text-sm font-medium text-gray-600 hover:text-gray-900">For Groomers</a>
+                    <a href="{{ route('marketing.for-dog-groomers') }}" class="text-sm font-medium text-gray-600 hover:text-gray-900">For Groomers</a>
                     <a href="#" class="text-sm font-medium text-gray-600 hover:text-gray-900">Pricing</a>
                     <a href="#" class="text-sm font-medium text-gray-600 hover:text-gray-900">Help</a>
                 </nav>
 
                 {{-- Desktop Auth --}}
                 <div class="hidden items-center gap-4 md:flex">
-                    <a href="{{ route('login') }}" class="text-sm font-medium text-gray-600 hover:text-gray-900">
-                        Login
-                    </a>
-                    <a href="{{ route('register') }}" class="rounded-lg bg-gray-900 px-6 py-2.5 text-sm font-medium text-white hover:bg-gray-800">
-                        Sign Up
-                    </a>
+                    @guest
+                        <a href="{{ route('login') }}" class="text-sm font-medium text-gray-600 hover:text-gray-900">
+                            Login
+                        </a>
+                        <a href="{{ route('register') }}" class="rounded-lg bg-gray-900 px-6 py-2.5 text-sm font-medium text-white hover:bg-gray-800">
+                            Sign Up
+                        </a>
+                    @else
+                        <div class="relative" x-data="{ open: false }">
+                            <button @click="open = !open" @click.outside="open = false" class="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900">
+                                <span class="flex size-8 items-center justify-center rounded-full bg-gray-200 text-xs font-semibold text-gray-700">
+                                    {{ str(auth()->user()->name)->substr(0, 1)->upper() }}
+                                </span>
+                                <span>{{ auth()->user()->name }}</span>
+                                <svg class="size-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                                </svg>
+                            </button>
+                            <div x-show="open" x-cloak x-transition class="absolute right-0 mt-2 w-48 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                                <a href="{{ route('dashboard') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Dashboard</a>
+                                <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">My Account</a>
+                                <div class="my-1 border-t border-gray-100"></div>
+                                <form method="POST" action="{{ route('logout') }}">
+                                    @csrf
+                                    <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
+                                        Sign Out
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    @endguest
                 </div>
 
                 {{-- Mobile Hamburger --}}
@@ -68,13 +93,30 @@
             {{-- Mobile Menu --}}
             <div x-show="mobileMenuOpen" x-cloak x-transition class="border-t border-gray-200 bg-white md:hidden">
                 <div class="space-y-1 px-4 py-4">
-                    <a href="#" class="block rounded-lg px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900">For Groomers</a>
+                    <a href="{{ route('marketing.for-dog-groomers') }}" class="block rounded-lg px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900">For Groomers</a>
                     <a href="#" class="block rounded-lg px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900">Pricing</a>
                     <a href="#" class="block rounded-lg px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900">Help</a>
                 </div>
                 <div class="border-t border-gray-200 px-4 py-4">
-                    <a href="{{ route('login') }}" class="block rounded-lg px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900">Login</a>
-                    <a href="{{ route('register') }}" class="mt-2 block rounded-lg bg-gray-900 px-3 py-2.5 text-center text-base font-medium text-white hover:bg-gray-800">Sign Up</a>
+                    @guest
+                        <a href="{{ route('login') }}" class="block rounded-lg px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900">Login</a>
+                        <a href="{{ route('register') }}" class="mt-2 block rounded-lg bg-gray-900 px-3 py-2.5 text-center text-base font-medium text-white hover:bg-gray-800">Sign Up</a>
+                    @else
+                        <div class="mb-3 flex items-center gap-3 px-3">
+                            <span class="flex size-8 items-center justify-center rounded-full bg-gray-200 text-xs font-semibold text-gray-700">
+                                {{ str(auth()->user()->name)->substr(0, 1)->upper() }}
+                            </span>
+                            <span class="text-base font-medium text-gray-900">{{ auth()->user()->name }}</span>
+                        </div>
+                        <a href="{{ route('dashboard') }}" class="block rounded-lg px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900">Dashboard</a>
+                        <a href="{{ route('profile.edit') }}" class="block rounded-lg px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900">My Account</a>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="block w-full rounded-lg px-3 py-2 text-left text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900">
+                                Sign Out
+                            </button>
+                        </form>
+                    @endguest
                 </div>
             </div>
         </header>

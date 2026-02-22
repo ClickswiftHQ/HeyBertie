@@ -65,3 +65,8 @@ test('handle availability check returns false for reserved words', function () {
         ->assertOk()
         ->assertJson(['available' => false]);
 });
+
+test('dog-grooming-in-london is rejected as a business handle', function () {
+    $this->post(route('onboarding.store', 3), ['handle' => 'dog-grooming-in-london'])
+        ->assertSessionHasErrors('handle');
+});

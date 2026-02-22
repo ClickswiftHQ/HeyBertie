@@ -2,10 +2,20 @@
 
 namespace App\Http\Requests\Onboarding;
 
+use App\Support\PostcodeFormatter;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreLocationRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('postcode') && $this->postcode) {
+            $this->merge([
+                'postcode' => PostcodeFormatter::format($this->postcode),
+            ]);
+        }
+    }
+
     /**
      * @return array<string, array<int, mixed>>
      */

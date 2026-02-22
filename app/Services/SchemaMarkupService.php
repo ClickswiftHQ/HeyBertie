@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Business;
 use App\Models\Location;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
 class SchemaMarkupService
@@ -104,6 +105,62 @@ class SchemaMarkupService
         }
 
         return $schema;
+    }
+
+    /**
+     * Generate SearchResultsPage + ItemList JSON-LD schema for search results.
+     *
+     * @param  LengthAwarePaginator<int, Location>  $results
+     * @return array<int, array<string, mixed>>
+     */
+    public function generateForSearchResults(string $pageName, string $pageUrl, LengthAwarePaginator $results): array
+    {
+        $searchResultsPage = [
+            '@context' => 'https://schema.org',
+            '@type' => 'SearchResultsPage',
+            'name' => $pageName,
+            'url' => $pageUrl,
+        ];
+
+        $listItems = [];
+        $position = 1;
+
+        foreach ($results as $location) {
+            /** @var Location $location */
+            $business = $location->business;
+            $avgRating = $business->getAverageRating();
+            $reviewCount = $business->getReviewCount();
+
+            $item = [
+                '@type' => 'LocalBusiness',
+                'name' => $business->name,
+                'url' => route('business.location', [$business->handle, $location->slug]),
+                'address' => $this->generateAddress($location),
+            ];
+
+            if ($avgRating !== null && $reviewCount > 0) {
+                $item['aggregateRating'] = [
+                    '@type' => 'AggregateRating',
+                    'ratingValue' => number_format($avgRating, 1),
+                    'reviewCount' => (string) $reviewCount,
+                ];
+            }
+
+            $listItems[] = [
+                '@type' => 'ListItem',
+                'position' => $position++,
+                'item' => $item,
+            ];
+        }
+
+        $itemList = [
+            '@context' => 'https://schema.org',
+            '@type' => 'ItemList',
+            'numberOfItems' => $results->total(),
+            'itemListElement' => $listItems,
+        ];
+
+        return [$searchResultsPage, $itemList];
     }
 
     /**

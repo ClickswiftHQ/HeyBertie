@@ -2,86 +2,136 @@
 
 namespace App\Services;
 
+use App\Support\PostcodeFormatter;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
 class GeocodingService
 {
+    public function __construct(private SearchService $searchService) {}
+
     /**
+     * Geocode a postcode, city name, or address to lat/lng.
+     *
+     * 1. Postcode detected → local postcodes table → Ideal Postcodes API
+     * 2. City/town name → SearchService hardcoded list
+     * 3. Neither → null
+     *
      * @return array{latitude: float, longitude: float}|null
      */
     public function geocode(string $address): ?array
     {
-        $cacheKey = 'geocode:' . md5($address);
+        $cacheKey = 'geocode:'.md5($address);
 
         return Cache::remember($cacheKey, now()->addMonth(), function () use ($address) {
-            $apiKey = config('services.google.maps_api_key');
+            $postcode = $this->extractPostcode($address);
 
-            if (! $apiKey) {
-                return null;
+            if ($postcode) {
+                return $this->geocodePostcode($postcode);
             }
 
-            $response = Http::get('https://maps.googleapis.com/maps/api/geocode/json', [
-                'address' => $address,
-                'key' => $apiKey,
-                'region' => 'gb',
-            ]);
+            // Try city/town name lookup
+            $slug = str($address)->lower()->slug()->value();
+            $location = $this->searchService->resolveLocation($slug);
 
-            if (! $response->successful()) {
-                return null;
+            if ($location) {
+                return [
+                    'latitude' => $location['latitude'],
+                    'longitude' => $location['longitude'],
+                ];
             }
 
-            $results = $response->json('results');
-
-            if (empty($results)) {
-                return null;
-            }
-
-            $location = $results[0]['geometry']['location'];
-
-            return [
-                'latitude' => $location['lat'],
-                'longitude' => $location['lng'],
-            ];
+            return null;
         });
     }
 
     /**
-     * @return array{address: string, city: string, postcode: string}|null
+     * Look up all addresses at a given postcode.
+     *
+     * @return array<int, array{line_1: string, line_2: string, line_3: string, post_town: string, county: string, postcode: string, latitude: float, longitude: float}>|null
      */
-    public function reverseGeocode(float $lat, float $lng): ?array
+    public function lookupPostcode(string $postcode): ?array
     {
-        $cacheKey = 'reverse_geocode:' . md5("{$lat},{$lng}");
+        $normalised = PostcodeFormatter::format($postcode);
+        $cacheKey = 'postcode_lookup:'.md5($normalised);
 
-        return Cache::remember($cacheKey, now()->addMonth(), function () use ($lat, $lng) {
-            $apiKey = config('services.google.maps_api_key');
+        return Cache::remember($cacheKey, now()->addMonth(), function () use ($normalised) {
+            $apiKey = config('services.ideal_postcodes.api_key');
 
             if (! $apiKey) {
                 return null;
             }
 
-            $response = Http::get('https://maps.googleapis.com/maps/api/geocode/json', [
-                'latlng' => "{$lat},{$lng}",
-                'key' => $apiKey,
+            // API expects no-space format
+            $apiPostcode = str_replace(' ', '', $normalised);
+
+            $response = Http::get('https://api.ideal-postcodes.co.uk/v1/postcodes/'.urlencode($apiPostcode), [
+                'api_key' => $apiKey,
             ]);
 
-            if (! $response->successful()) {
+            if (! $response->successful() || $response->json('code') !== 2000) {
                 return null;
             }
 
-            $results = $response->json('results');
-
-            if (empty($results)) {
-                return null;
-            }
-
-            $components = collect($results[0]['address_components']);
-
-            return [
-                'address' => $results[0]['formatted_address'],
-                'city' => $components->firstWhere(fn ($c) => in_array('postal_town', $c['types']))['long_name'] ?? '',
-                'postcode' => $components->firstWhere(fn ($c) => in_array('postal_code', $c['types']))['long_name'] ?? '',
-            ];
+            return collect($response->json('result'))->map(fn (array $item) => [
+                'line_1' => $item['line_1'] ?? '',
+                'line_2' => $item['line_2'] ?? '',
+                'line_3' => $item['line_3'] ?? '',
+                'post_town' => $item['post_town'] ?? '',
+                'county' => $item['county'] ?? '',
+                'postcode' => $item['postcode'] ?? '',
+                'latitude' => (float) $item['latitude'],
+                'longitude' => (float) $item['longitude'],
+            ])->all();
         });
+    }
+
+    /**
+     * Extract a UK postcode from a string if present.
+     */
+    private function extractPostcode(string $input): ?string
+    {
+        $cleaned = strtoupper(trim($input));
+
+        if (preg_match('/\b([A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2})\b/', $cleaned, $matches)) {
+            return $matches[1];
+        }
+
+        return null;
+    }
+
+    /**
+     * Geocode a postcode: check local table first, then fall back to Ideal Postcodes API.
+     *
+     * @return array{latitude: float, longitude: float}|null
+     */
+    private function geocodePostcode(string $postcode): ?array
+    {
+        $formatted = PostcodeFormatter::format($postcode);
+
+        // Check local postcodes table first
+        $local = DB::table('postcodes')
+            ->where('postcode', $formatted)
+            ->first();
+
+        if ($local) {
+            return [
+                'latitude' => (float) $local->latitude,
+                'longitude' => (float) $local->longitude,
+            ];
+        }
+
+        // Fall back to Ideal Postcodes API
+        $results = $this->lookupPostcode($postcode);
+
+        if (empty($results)) {
+            return null;
+        }
+
+        return [
+            'latitude' => $results[0]['latitude'],
+            'longitude' => $results[0]['longitude'],
+        ];
     }
 }
