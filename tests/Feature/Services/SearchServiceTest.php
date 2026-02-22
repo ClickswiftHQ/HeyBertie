@@ -1,10 +1,18 @@
 <?php
 
+use App\Models\GeocodeCache;
 use App\Services\SearchService;
 
-test('resolveLocation returns coordinates for known city', function () {
-    $service = new SearchService;
+test('resolveLocation returns coordinates from geocode_cache', function () {
+    GeocodeCache::create([
+        'slug' => 'london',
+        'name' => 'London',
+        'display_name' => 'London',
+        'latitude' => 51.5074,
+        'longitude' => -0.1278,
+    ]);
 
+    $service = new SearchService;
     $result = $service->resolveLocation('london');
 
     expect($result)->not->toBeNull();
@@ -14,8 +22,15 @@ test('resolveLocation returns coordinates for known city', function () {
 });
 
 test('resolveLocation returns coordinates for known town', function () {
-    $service = new SearchService;
+    GeocodeCache::create([
+        'slug' => 'fulham-london',
+        'name' => 'Fulham',
+        'display_name' => 'Fulham, London',
+        'latitude' => 51.4749,
+        'longitude' => -0.2010,
+    ]);
 
+    $service = new SearchService;
     $result = $service->resolveLocation('fulham-london');
 
     expect($result)->not->toBeNull();
@@ -25,7 +40,6 @@ test('resolveLocation returns coordinates for known town', function () {
 
 test('resolveLocation returns null for unknown location', function () {
     $service = new SearchService;
-
     $result = $service->resolveLocation('nonexistent-place');
 
     expect($result)->toBeNull();
@@ -33,7 +47,6 @@ test('resolveLocation returns null for unknown location', function () {
 
 test('serviceNames returns all 3 types', function () {
     $service = new SearchService;
-
     $names = $service->serviceNames();
 
     expect($names)->toHaveCount(3);

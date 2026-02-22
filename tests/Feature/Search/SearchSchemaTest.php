@@ -1,7 +1,13 @@
 <?php
 
 use App\Models\Business;
+use App\Models\GeocodeCache;
 use App\Models\Location;
+
+beforeEach(function () {
+    GeocodeCache::create(['slug' => 'london', 'name' => 'London', 'display_name' => 'London', 'latitude' => 51.5074, 'longitude' => -0.1278, 'settlement_type' => 'City']);
+    GeocodeCache::create(['slug' => 'fulham-london', 'name' => 'Fulham', 'display_name' => 'Fulham, London', 'latitude' => 51.4749, 'longitude' => -0.2010]);
+});
 
 test('landing page includes SearchResultsPage schema', function () {
     $business = Business::factory()->completed()->create();

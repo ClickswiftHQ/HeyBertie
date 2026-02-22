@@ -1,11 +1,16 @@
 <?php
 
 use App\Models\Business;
+use App\Models\GeocodeCache;
 use App\Models\Location;
 use App\Services\GeocodingService;
 
 beforeEach(function () {
     $this->geocodingMock = $this->mock(GeocodingService::class);
+
+    // Seed geocode_cache for landing page tests
+    GeocodeCache::create(['slug' => 'london', 'name' => 'London', 'display_name' => 'London', 'latitude' => 51.5074, 'longitude' => -0.1278, 'settlement_type' => 'City']);
+    GeocodeCache::create(['slug' => 'fulham-london', 'name' => 'Fulham', 'display_name' => 'Fulham, London', 'latitude' => 51.4749, 'longitude' => -0.2010]);
 });
 
 test('search with valid location returns 200', function () {

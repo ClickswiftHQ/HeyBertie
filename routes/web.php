@@ -6,6 +6,7 @@ use App\Http\Controllers\MarketingController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PostcodeLookupController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\SearchSuggestController;
 use App\Models\Business;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -71,6 +72,11 @@ require __DIR__.'/statamic.php';
 Route::get('/api/postcode-lookup/{postcode}', PostcodeLookupController::class)
     ->name('postcode.lookup')
     ->middleware('throttle:60,1');
+
+// Search suggest API
+Route::get('/api/search-suggest', SearchSuggestController::class)
+    ->name('search.suggest')
+    ->middleware('throttle:120,1');
 
 // Search routes
 Route::get('/search', [SearchController::class, 'index'])->name('search');

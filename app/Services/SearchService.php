@@ -2,49 +2,13 @@
 
 namespace App\Services;
 
+use App\Models\GeocodeCache;
 use App\Models\Location;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
 class SearchService
 {
-    /** @var array<string, array{name: string, latitude: float, longitude: float}> */
-    private const LOCATIONS = [
-        // Major cities
-        'london' => ['name' => 'London', 'latitude' => 51.5074, 'longitude' => -0.1278],
-        'manchester' => ['name' => 'Manchester', 'latitude' => 53.4808, 'longitude' => -2.2426],
-        'birmingham' => ['name' => 'Birmingham', 'latitude' => 52.4862, 'longitude' => -1.8904],
-        'leeds' => ['name' => 'Leeds', 'latitude' => 53.8008, 'longitude' => -1.5491],
-        'bristol' => ['name' => 'Bristol', 'latitude' => 51.4545, 'longitude' => -2.5879],
-        'liverpool' => ['name' => 'Liverpool', 'latitude' => 53.4084, 'longitude' => -2.9916],
-        'edinburgh' => ['name' => 'Edinburgh', 'latitude' => 55.9533, 'longitude' => -3.1883],
-        'glasgow' => ['name' => 'Glasgow', 'latitude' => 55.8642, 'longitude' => -4.2518],
-        'sheffield' => ['name' => 'Sheffield', 'latitude' => 53.3811, 'longitude' => -1.4701],
-        'cardiff' => ['name' => 'Cardiff', 'latitude' => 51.4816, 'longitude' => -3.1791],
-        'nottingham' => ['name' => 'Nottingham', 'latitude' => 52.9548, 'longitude' => -1.1581],
-        'newcastle' => ['name' => 'Newcastle', 'latitude' => 54.9783, 'longitude' => -1.6178],
-        'brighton' => ['name' => 'Brighton', 'latitude' => 50.8225, 'longitude' => -0.1372],
-        'cambridge' => ['name' => 'Cambridge', 'latitude' => 52.2053, 'longitude' => 0.1218],
-        'oxford' => ['name' => 'Oxford', 'latitude' => 51.7520, 'longitude' => -1.2577],
-        'bath' => ['name' => 'Bath', 'latitude' => 51.3811, 'longitude' => -2.3590],
-        'york' => ['name' => 'York', 'latitude' => 53.9591, 'longitude' => -1.0815],
-        'reading' => ['name' => 'Reading', 'latitude' => 51.4543, 'longitude' => -0.9781],
-        'southampton' => ['name' => 'Southampton', 'latitude' => 50.9097, 'longitude' => -1.4044],
-        'belfast' => ['name' => 'Belfast', 'latitude' => 54.5973, 'longitude' => -5.9301],
-
-        // London towns/areas
-        'fulham-london' => ['name' => 'Fulham, London', 'latitude' => 51.4749, 'longitude' => -0.2010],
-        'chelsea-london' => ['name' => 'Chelsea, London', 'latitude' => 51.4875, 'longitude' => -0.1687],
-        'camden-london' => ['name' => 'Camden, London', 'latitude' => 51.5390, 'longitude' => -0.1426],
-        'islington-london' => ['name' => 'Islington, London', 'latitude' => 51.5362, 'longitude' => -0.1033],
-        'hackney-london' => ['name' => 'Hackney, London', 'latitude' => 51.5450, 'longitude' => -0.0553],
-        'clapham-london' => ['name' => 'Clapham, London', 'latitude' => 51.4620, 'longitude' => -0.1380],
-        'brixton-london' => ['name' => 'Brixton, London', 'latitude' => 51.4613, 'longitude' => -0.1156],
-        'wimbledon-london' => ['name' => 'Wimbledon, London', 'latitude' => 51.4214, 'longitude' => -0.2064],
-        'greenwich-london' => ['name' => 'Greenwich, London', 'latitude' => 51.4769, 'longitude' => -0.0005],
-        'richmond-london' => ['name' => 'Richmond, London', 'latitude' => 51.4613, 'longitude' => -0.3037],
-    ];
-
     /** @var array<string, string> */
     private const SERVICES = [
         'dog-grooming' => 'Dog Grooming',
@@ -85,7 +49,17 @@ class SearchService
      */
     public function resolveLocation(string $slug): ?array
     {
-        return self::LOCATIONS[$slug] ?? null;
+        $cached = GeocodeCache::where('slug', $slug)->first();
+
+        if (! $cached) {
+            return null;
+        }
+
+        return [
+            'name' => $cached->display_name,
+            'latitude' => $cached->latitude,
+            'longitude' => $cached->longitude,
+        ];
     }
 
     /**
