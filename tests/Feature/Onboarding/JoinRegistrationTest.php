@@ -53,7 +53,7 @@ test('registering via join redirects to onboarding instead of dashboard', functi
     // The session intent is consumed by RegisterResponse
 });
 
-test('registering via join consumes the session intent', function () {
+test('registering via join preserves session intent for post-verification', function () {
     $this->get(route('join'));
     expect(session('registration_intent'))->toBe('business');
 
@@ -64,10 +64,10 @@ test('registering via join consumes the session intent', function () {
         'password_confirmation' => 'password123456',
     ]);
 
-    expect(session('registration_intent'))->toBeNull();
+    expect(session('registration_intent'))->toBe('business');
 });
 
-test('normal registration still redirects to dashboard', function () {
+test('all registrations redirect to register complete', function () {
     $response = $this->post(route('register.store'), [
         'name' => 'Normal User',
         'email' => 'normal@example.com',
@@ -76,10 +76,10 @@ test('normal registration still redirects to dashboard', function () {
     ]);
 
     $this->assertAuthenticated();
-    $response->assertRedirect(route('dashboard', absolute: false));
+    $response->assertRedirect(route('register.complete'));
 });
 
-test('registering via join redirects to onboarding', function () {
+test('registering via join redirects to register complete', function () {
     $this->get(route('join'));
 
     $response = $this->post(route('register.store'), [
@@ -90,5 +90,5 @@ test('registering via join redirects to onboarding', function () {
     ]);
 
     $this->assertAuthenticated();
-    $response->assertRedirect(route('onboarding.index'));
+    $response->assertRedirect(route('register.complete'));
 });

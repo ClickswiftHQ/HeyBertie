@@ -6,24 +6,30 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 /**
  * @property int $id
  * @property int $business_id
  * @property int $location_id
- * @property int $service_id
+ * @property int|null $service_id
  * @property int $customer_id
  * @property int|null $staff_member_id
  * @property \Carbon\CarbonImmutable $appointment_datetime
  * @property int $duration_minutes
  * @property string $status
+ * @property string|null $booking_reference
  * @property numeric $price
  * @property numeric $deposit_amount
  * @property bool $deposit_paid
  * @property string $payment_status
  * @property string|null $payment_intent_id
  * @property string|null $customer_notes
+ * @property string|null $pet_name
+ * @property string|null $pet_breed
+ * @property string|null $pet_size
  * @property string|null $pro_notes
  * @property \Carbon\CarbonImmutable|null $reminder_sent_at
  * @property \Carbon\CarbonImmutable|null $reminder_2hr_sent_at
@@ -36,8 +42,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property-read \App\Models\Business $business
  * @property-read \App\Models\User|null $cancelledBy
  * @property-read \App\Models\Customer $customer
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\BookingItem> $items
+ * @property-read int|null $items_count
  * @property-read \App\Models\Location $location
- * @property-read \App\Models\Service $service
+ * @property-read \App\Models\Service|null $service
  * @property-read \App\Models\StaffMember|null $staffMember
  *
  * @method static \Database\Factories\BookingFactory factory($count = null, $state = [])
@@ -94,12 +102,16 @@ class Booking extends Model
         'appointment_datetime',
         'duration_minutes',
         'status',
+        'booking_reference',
         'price',
         'deposit_amount',
         'deposit_paid',
         'payment_status',
         'payment_intent_id',
         'customer_notes',
+        'pet_name',
+        'pet_breed',
+        'pet_size',
         'pro_notes',
         'reminder_sent_at',
         'reminder_2hr_sent_at',
@@ -173,6 +185,23 @@ class Booking extends Model
     }
 
     /**
+     * @return HasMany<BookingItem, $this>
+     */
+    public function items(): HasMany
+    {
+        return $this->hasMany(BookingItem::class)->orderBy('display_order');
+    }
+
+    public static function generateReference(): string
+    {
+        do {
+            $reference = 'BK-'.Str::upper(Str::random(6));
+        } while (static::where('booking_reference', $reference)->exists());
+
+        return $reference;
+    }
+
+    /**
      * @param  Builder<Booking>  $query
      */
     public function scopeUpcoming(Builder $query): void
@@ -230,10 +259,19 @@ class Booking extends Model
             return false;
         }
 
-        return $this->appointment_datetime->diffInHours(now()) >= 24;
+        return $this->appointment_datetime->isAfter(now()->addHours(24));
     }
 
-    public function cancel(User $user, string $reason): void
+    public function canBeRescheduled(): bool
+    {
+        if (in_array($this->status, ['cancelled', 'completed', 'no_show'])) {
+            return false;
+        }
+
+        return $this->appointment_datetime->isAfter(now()->addHours(24));
+    }
+
+    public function cancel(User $user, ?string $reason = null): void
     {
         $this->update([
             'status' => 'cancelled',

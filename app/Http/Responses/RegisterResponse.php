@@ -4,7 +4,6 @@ namespace App\Http\Responses;
 
 use Illuminate\Http\JsonResponse;
 use Laravel\Fortify\Contracts\RegisterResponse as RegisterResponseContract;
-use Laravel\Fortify\Fortify;
 
 class RegisterResponse implements RegisterResponseContract
 {
@@ -20,10 +19,6 @@ class RegisterResponse implements RegisterResponseContract
             return new JsonResponse('', 201);
         }
 
-        if ($request->session()->pull('registration_intent') === 'business') {
-            return redirect()->route('onboarding.index');
-        }
-
-        return redirect()->intended(Fortify::redirects('register'));
+        return redirect()->route('register.complete');
     }
 }

@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\BookingController;
 use App\Http\Controllers\BusinessController;
+use App\Http\Controllers\CustomerBookingController;
 use App\Http\Controllers\Dashboard\DashboardController;
 use App\Http\Controllers\MarketingController;
 use App\Http\Controllers\OnboardingController;
@@ -28,6 +30,9 @@ Route::get('join', function (Request $request) {
         'intent' => 'business',
     ]);
 })->name('join');
+
+Route::get('register/complete', fn () => Inertia::render('auth/register-complete'))
+    ->name('register.complete');
 
 // Dashboard redirect — resolves to user's primary business dashboard
 Route::get('dashboard', function (Request $request) {
@@ -83,6 +88,34 @@ Route::get('/search', [SearchController::class, 'index'])->name('search');
 Route::get('/{slug}', [SearchController::class, 'landing'])
     ->where('slug', '[a-z-]+-in-[a-z-]+')
     ->name('search.landing');
+
+// Customer booking management
+Route::get('/my-bookings', [CustomerBookingController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('customer.bookings.index');
+Route::get('/my-bookings/{ref}', [CustomerBookingController::class, 'show'])
+    ->name('customer.bookings.show');
+Route::post('/my-bookings/{ref}/cancel', [CustomerBookingController::class, 'cancel'])
+    ->name('customer.bookings.cancel');
+Route::get('/my-bookings/{ref}/reschedule', [CustomerBookingController::class, 'reschedule'])
+    ->name('customer.bookings.reschedule');
+Route::post('/my-bookings/{ref}/reschedule', [CustomerBookingController::class, 'processReschedule'])
+    ->name('customer.bookings.process-reschedule');
+
+// Booking API endpoints
+Route::get('/api/booking/{location}/available-dates', [BookingController::class, 'availableDates'])
+    ->name('api.booking.available-dates')
+    ->middleware('throttle:60,1');
+Route::get('/api/booking/{location}/time-slots', [BookingController::class, 'timeSlots'])
+    ->name('api.booking.time-slots')
+    ->middleware('throttle:60,1');
+
+// Booking flow (must be before vanity handle routes)
+Route::where(['handle' => '[a-z0-9][a-z0-9-]*'])->group(function () {
+    Route::get('/{handle}/{locationSlug}/book', [BookingController::class, 'show'])->name('booking.show');
+    Route::post('/{handle}/{locationSlug}/book', [BookingController::class, 'store'])->name('booking.store');
+    Route::get('/{handle}/{locationSlug}/book/confirmation', [BookingController::class, 'confirmation'])->name('booking.confirmation');
+});
 
 // Business management routes (authenticated, handle-scoped)
 Route::middleware(['auth', 'verified', 'onboarding.complete', 'business.manage'])
