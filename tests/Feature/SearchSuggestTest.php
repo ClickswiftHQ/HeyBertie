@@ -59,6 +59,30 @@ test('partial postcode input returns towns in that sector', function () {
         ->assertJsonFragment(['name' => "Aaron's Hill, Surrey"]);
 });
 
+test('multi-word input matches across name and county', function () {
+    GeocodeCache::create(['slug' => 'fulham-london', 'name' => 'Fulham', 'display_name' => 'Fulham, London', 'latitude' => 51.4749, 'longitude' => -0.2010, 'settlement_type' => 'Suburban Area', 'county' => 'London']);
+
+    $this->getJson('/api/search-suggest?q=London+ful')
+        ->assertSuccessful()
+        ->assertJsonFragment(['name' => 'Fulham, London']);
+});
+
+test('multi-word input matches regardless of word order', function () {
+    GeocodeCache::create(['slug' => 'fulham-london', 'name' => 'Fulham', 'display_name' => 'Fulham, London', 'latitude' => 51.4749, 'longitude' => -0.2010, 'settlement_type' => 'Suburban Area', 'county' => 'London']);
+
+    $this->getJson('/api/search-suggest?q=ful+london')
+        ->assertSuccessful()
+        ->assertJsonFragment(['name' => 'Fulham, London']);
+});
+
+test('multi-word input excludes non-matching rows', function () {
+    GeocodeCache::create(['slug' => 'fulham-london', 'name' => 'Fulham', 'display_name' => 'Fulham, London', 'latitude' => 51.4749, 'longitude' => -0.2010, 'settlement_type' => 'Suburban Area', 'county' => 'London']);
+
+    $this->getJson('/api/search-suggest?q=Manchester+ful')
+        ->assertSuccessful()
+        ->assertJsonCount(0);
+});
+
 test('results are weighted by type with city before village', function () {
     GeocodeCache::create(['slug' => 'bristol-avon', 'name' => 'Bristol', 'display_name' => 'Bristol', 'latitude' => 51.4545, 'longitude' => -2.5879, 'settlement_type' => 'City']);
     GeocodeCache::create(['slug' => 'bramley-surrey', 'name' => 'Bramley', 'display_name' => 'Bramley, Surrey', 'latitude' => 51.1928, 'longitude' => -0.8690, 'settlement_type' => 'Village']);

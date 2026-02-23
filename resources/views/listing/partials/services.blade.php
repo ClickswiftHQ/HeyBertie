@@ -39,7 +39,12 @@
                 </div>
                 <div class="shrink-0">
                     @if ($canBook)
-                        <a href="#" class="inline-flex items-center rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50">Book</a>
+                        <button
+                            @click="toggleService({{ $service->id }}, '{{ addslashes($service->name) }}', {{ $service->duration_minutes }}, {{ (float) ($service->price ?? 0) }})"
+                            :class="isInBasket({{ $service->id }}) ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-300 text-gray-700 hover:bg-gray-50'"
+                            class="inline-flex items-center rounded-lg border px-3 py-1.5 text-sm font-medium transition"
+                            x-text="isInBasket({{ $service->id }}) ? 'Added' : 'Add'"
+                        ></button>
                     @else
                         <span class="inline-flex items-center px-3 py-1.5 text-sm text-gray-400">Contact to book</span>
                     @endif

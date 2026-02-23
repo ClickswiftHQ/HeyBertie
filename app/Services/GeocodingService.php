@@ -169,18 +169,39 @@ class GeocodingService
                 ->all();
         }
 
-        // Name-based search
+        // Name-based search — split input into words so "London ful" matches "Fulham, London"
+        $words = preg_split('/[\s,]+/', $normalised, -1, PREG_SPLIT_NO_EMPTY);
         $slugPrefix = str($normalised)->slug()->value();
         $slugCol = $grammar->wrap('slug');
+        $nameCol = $grammar->wrap('name');
+        $displayCol = $grammar->wrap('display_name');
+        $countyCol = $grammar->wrap('county');
+
+        $query = GeocodeCache::query();
+
+        if (count($words) > 1) {
+            // Multi-word: require every word to appear in name, display_name, or county
+            foreach ($words as $word) {
+                $pattern = '%'.$word.'%';
+                $query->where(function ($q) use ($nameCol, $displayCol, $countyCol, $pattern) {
+                    $q->whereRaw('LOWER('.$nameCol.') LIKE ?', [$pattern])
+                        ->orWhereRaw('LOWER('.$displayCol.') LIKE ?', [$pattern])
+                        ->orWhereRaw('LOWER('.$countyCol.') LIKE ?', [$pattern]);
+                });
+            }
+        } else {
+            // Single word: match slug prefix or name substring (original behaviour)
+            $query->where('slug', 'like', $slugPrefix.'%')
+                ->orWhereRaw('LOWER('.$nameCol.') LIKE ?', ['%'.$normalised.'%']);
+        }
+
         $nameOrder = sprintf(
             'CASE WHEN %1$s = ? THEN 0 WHEN %1$s LIKE ? THEN 1 ELSE 2 END, %2$s',
             $slugCol,
             $typeOrder,
         );
 
-        return GeocodeCache::query()
-            ->where('slug', 'like', $slugPrefix.'%')
-            ->orWhereRaw('LOWER('.$grammar->wrap('name').') LIKE ?', ['%'.$normalised.'%'])
+        return $query
             ->orderByRaw($nameOrder, [$slugPrefix, $slugPrefix.'%', ...$typeBindings])
             ->limit(8)
             ->get()

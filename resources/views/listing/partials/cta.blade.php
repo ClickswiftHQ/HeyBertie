@@ -21,7 +21,13 @@
 
         <div class="mt-4">
             @if ($canBook)
-                <a href="#" class="block rounded-lg bg-gray-900 px-6 py-2.5 text-center text-sm font-medium text-white hover:bg-gray-800">Book Now</a>
+                <a
+                    :href="basket.length > 0
+                        ? '{{ route('booking.show', [$business->handle, $location->slug]) }}' + '?' + basket.map(s => 'services[]=' + s.id).join('&')
+                        : '{{ route('booking.show', [$business->handle, $location->slug]) }}'"
+                    class="block rounded-lg bg-gray-900 px-6 py-2.5 text-center text-sm font-medium text-white hover:bg-gray-800"
+                    x-text="basket.length > 0 ? 'Choose a time (' + basket.length + ')' : 'Book Now'"
+                ></a>
             @elseif ($business->phone)
                 <a href="tel:{{ $business->phone }}" class="block rounded-lg border-2 border-gray-300 px-6 py-2.5 text-center text-sm font-medium text-gray-700 hover:bg-gray-50">Call to Book</a>
             @else

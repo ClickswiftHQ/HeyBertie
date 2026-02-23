@@ -104,7 +104,7 @@ class AvailabilityBlock extends Model
     public function scopeForDate(Builder $query, Carbon $date): void
     {
         $query->where(function (Builder $q) use ($date) {
-            $q->where('specific_date', $date->toDateString())
+            $q->whereDate('specific_date', $date->toDateString())
                 ->orWhere(function (Builder $q) use ($date) {
                     $q->whereNull('specific_date')
                         ->where('day_of_week', $date->dayOfWeek);

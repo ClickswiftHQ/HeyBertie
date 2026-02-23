@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Booking;
 use App\Models\Business;
 use App\Models\Customer;
 use App\Models\Location;
@@ -28,6 +29,7 @@ class BookingFactory extends Factory
             'appointment_datetime' => fake()->dateTimeBetween('+1 day', '+30 days'),
             'duration_minutes' => fake()->randomElement([30, 45, 60, 90, 120]),
             'status' => 'confirmed',
+            'booking_reference' => fn () => Booking::generateReference(),
             'price' => fake()->randomFloat(2, 15, 80),
             'deposit_amount' => 0,
             'deposit_paid' => false,

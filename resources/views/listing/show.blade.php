@@ -33,33 +33,63 @@
 @endpush
 
 @section('content')
-    @include('listing.partials.header')
+    <div
+        x-data="{
+            basket: [],
+            toggleService(id, name, duration, price) {
+                const index = this.basket.findIndex(s => s.id === id);
+                if (index >= 0) {
+                    this.basket.splice(index, 1);
+                } else {
+                    this.basket.push({ id, name, duration, price });
+                }
+            },
+            isInBasket(id) {
+                return this.basket.some(s => s.id === id);
+            },
+            basketTotal() {
+                return this.basket.reduce((sum, s) => sum + s.price, 0);
+            },
+            basketDuration() {
+                return this.basket.reduce((sum, s) => sum + s.duration, 0);
+            },
+            formatBasketDuration() {
+                const m = this.basketDuration();
+                if (m < 60) return m + ' min';
+                const hrs = Math.floor(m / 60);
+                const mins = m % 60;
+                return mins > 0 ? hrs + 'h ' + mins + 'm' : hrs + 'h';
+            },
+        }"
+    >
+        @include('listing.partials.header')
 
-    @include('listing.partials.location-switcher')
+        @include('listing.partials.location-switcher')
 
-    <div class="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-        <div class="lg:grid lg:grid-cols-3 lg:gap-8">
-            <div class="space-y-8 lg:col-span-2">
-                @include('listing.partials.about')
-                <hr class="border-gray-200">
-                @include('listing.partials.services')
-                <hr class="border-gray-200">
-                @include('listing.partials.reviews')
-                <hr class="border-gray-200">
-                @include('listing.partials.location')
-                <hr class="border-gray-200">
-                @include('listing.partials.contact')
-            </div>
+        <div class="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+            <div class="lg:grid lg:grid-cols-3 lg:gap-8">
+                <div class="space-y-8 lg:col-span-2">
+                    @include('listing.partials.about')
+                    <hr class="border-gray-200">
+                    @include('listing.partials.services')
+                    <hr class="border-gray-200">
+                    @include('listing.partials.reviews')
+                    <hr class="border-gray-200">
+                    @include('listing.partials.location')
+                    <hr class="border-gray-200">
+                    @include('listing.partials.contact')
+                </div>
 
-            <div class="mt-8 lg:mt-0">
-                <div class="sticky top-6 space-y-6">
-                    @include('listing.partials.cta')
-                    @include('listing.partials.availability')
+                <div class="mt-8 lg:mt-0">
+                    <div class="sticky top-6 space-y-6">
+                        @include('listing.partials.cta')
+                        @include('listing.partials.availability')
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    @include('listing.partials.sticky-booking-bar')
-    @include('listing.partials.share-dialog')
+        @include('listing.partials.sticky-booking-bar')
+        @include('listing.partials.share-dialog')
+    </div>
 @endsection

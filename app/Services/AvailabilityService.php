@@ -57,7 +57,41 @@ class AvailabilityService
         return $slots;
     }
 
-    public function isTimeSlotAvailable(Location $location, Carbon $datetime, int $duration, ?StaffMember $staff = null): bool
+    /**
+     * Get dates that have at least one available slot within the booking window.
+     *
+     * @return list<array{date: string, available: bool}>
+     */
+    public function getAvailableDates(Location $location, ?StaffMember $staff, int $durationMinutes, int $daysAhead): array
+    {
+        $dates = [];
+        $today = Carbon::today();
+
+        for ($i = 0; $i < $daysAhead; $i++) {
+            $date = $today->copy()->addDays($i);
+
+            $slots = $this->getAvailableSlots($location, $date, $staff, $durationMinutes);
+
+            // Filter out slots that don't meet the minimum notice requirement
+            if ($date->isToday()) {
+                $minNotice = now()->addHours($location->min_notice_hours);
+                $slots = array_filter($slots, function ($slot) use ($date, $minNotice) {
+                    $slotTime = $date->copy()->setTimeFromTimeString($slot['time']);
+
+                    return $slotTime->gte($minNotice);
+                });
+            }
+
+            $dates[] = [
+                'date' => $date->toDateString(),
+                'available' => count($slots) > 0,
+            ];
+        }
+
+        return $dates;
+    }
+
+    public function isTimeSlotAvailable(Location $location, Carbon $datetime, int $duration, ?StaffMember $staff = null, ?int $excludeBookingId = null): bool
     {
         $date = $datetime->copy()->startOfDay();
         $slotTime = $datetime->format('H:i');
@@ -99,7 +133,7 @@ class AvailabilityService
         $slotStart = $datetime;
         $slotEnd = $datetime->copy()->addMinutes($duration);
 
-        return ! $this->queryHasConflict($location, $slotStart, $slotEnd, $buffer, $staff);
+        return ! $this->queryHasConflict($location, $slotStart, $slotEnd, $buffer, $staff, $excludeBookingId);
     }
 
     /**
@@ -167,7 +201,7 @@ class AvailabilityService
     /**
      * Check booking conflicts using a database interval query (for single-slot checks).
      */
-    private function queryHasConflict(Location $location, Carbon $start, Carbon $end, int $buffer, ?StaffMember $staff): bool
+    private function queryHasConflict(Location $location, Carbon $start, Carbon $end, int $buffer, ?StaffMember $staff, ?int $excludeBookingId = null): bool
     {
         $driver = DB::connection()->getDriverName();
 
@@ -175,6 +209,7 @@ class AvailabilityService
             ->where('location_id', $location->id)
             ->whereNotIn('status', ['cancelled'])
             ->when($staff, fn ($q) => $q->where('staff_member_id', $staff->id))
+            ->when($excludeBookingId, fn ($q) => $q->where('id', '!=', $excludeBookingId))
             ->where('appointment_datetime', '<', $end);
 
         if ($driver === 'sqlite') {

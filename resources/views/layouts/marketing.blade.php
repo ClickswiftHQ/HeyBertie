@@ -62,6 +62,7 @@
                             </button>
                             <div x-show="open" x-cloak x-transition class="absolute right-0 mt-2 w-48 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
                                 <a href="{{ route('dashboard') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Dashboard</a>
+                                <a href="{{ route('customer.bookings.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">My Bookings</a>
                                 <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">My Account</a>
                                 <div class="my-1 border-t border-gray-100"></div>
                                 <form method="POST" action="{{ route('logout') }}">
@@ -109,6 +110,7 @@
                             <span class="text-base font-medium text-gray-900">{{ auth()->user()->name }}</span>
                         </div>
                         <a href="{{ route('dashboard') }}" class="block rounded-lg px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900">Dashboard</a>
+                        <a href="{{ route('customer.bookings.index') }}" class="block rounded-lg px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900">My Bookings</a>
                         <a href="{{ route('profile.edit') }}" class="block rounded-lg px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900">My Account</a>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
