@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\BreedSuggestController;
 use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\CustomerBookingController;
 use App\Http\Controllers\Dashboard\DashboardController;
@@ -44,11 +45,11 @@ Route::get('dashboard', function (Request $request) {
         ->first();
 
     if (! $business) {
-        return redirect()->route('onboarding.index');
+        return redirect()->route('customer.bookings.index');
     }
 
     return redirect()->route('business.dashboard', $business->handle);
-})->middleware(['auth', 'verified', 'onboarding.complete'])->name('dashboard');
+})->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware(['auth', 'verified'])->prefix('onboarding')->name('onboarding.')->group(function () {
     Route::get('/', [OnboardingController::class, 'index'])->name('index');
@@ -81,6 +82,11 @@ Route::get('/api/postcode-lookup/{postcode}', PostcodeLookupController::class)
 // Search suggest API
 Route::get('/api/search-suggest', SearchSuggestController::class)
     ->name('search.suggest')
+    ->middleware('throttle:120,1');
+
+// Breed suggest API
+Route::get('/api/breed-suggest', BreedSuggestController::class)
+    ->name('breed.suggest')
     ->middleware('throttle:120,1');
 
 // Search routes

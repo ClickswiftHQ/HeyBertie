@@ -89,12 +89,12 @@ test('dashboard redirect goes to most recent business', function () {
         ->assertRedirect(route('business.dashboard', $newer->handle));
 });
 
-test('dashboard redirect goes to onboarding if no completed business', function () {
+test('dashboard redirect goes to my-bookings if no completed business', function () {
     $user = User::factory()->create(['email_verified_at' => now()]);
 
     $this->actingAs($user)
         ->get(route('dashboard'))
-        ->assertRedirect(route('onboarding.index'));
+        ->assertRedirect(route('customer.bookings.index'));
 });
 
 test('non-existent handle returns 404', function () {

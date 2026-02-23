@@ -17,10 +17,10 @@ test('authenticated users with completed business are redirected to handle dashb
         ->assertRedirect(route('business.dashboard', $business->handle));
 });
 
-test('authenticated users without completed business are redirected to onboarding', function () {
+test('authenticated users without completed business are redirected to my-bookings', function () {
     $user = User::factory()->create(['email_verified_at' => now()]);
 
     $this->actingAs($user)
         ->get(route('dashboard'))
-        ->assertRedirect(route('onboarding.index'));
+        ->assertRedirect(route('customer.bookings.index'));
 });
