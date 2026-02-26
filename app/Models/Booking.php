@@ -290,4 +290,9 @@ class Booking extends Model
     {
         $this->update(['status' => 'no_show']);
     }
+
+    public function confirm(): void
+    {
+        $this->update(['status' => 'confirmed']);
+    }
 }

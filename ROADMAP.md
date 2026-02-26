@@ -168,7 +168,38 @@
 
 ---
 
-## Phase 7: Payment Integration (Week 8-9)
+## Phase 7: Customer Booking Flow (Week 8-9) - COMPLETE
+
+> **Detailed spec:** [`roadmap/phase-7-customer-booking-flow.md`](roadmap/phase-7-customer-booking-flow.md)
+
+- [x] Booking page (`/{handle}/{location-slug}/book`) — Blade + Alpine.js 4-step wizard
+- [x] Service selection step (multi-service basket with running totals)
+- [x] Staff selection step (conditional, "Anyone available" default)
+- [x] Date & time selection (date slider, time slot grid grouped by period, API-driven)
+- [x] Guest checkout (name, email, phone, pet details — stub user creation)
+- [x] `booking_items` table (itemised services with price/duration snapshots)
+- [x] `bookings` table additions (booking_reference, pet_name, pet_breed, pet_size, nullable service_id)
+- [x] Listing page service "Add" buttons + sticky basket bar enhancement
+- [x] API endpoints (available dates, time slots)
+- [x] `AvailabilityService.getAvailableDates()`, `BookingService.createMultiServiceBooking()`
+- [x] Confirmation page with booking reference
+- [x] 29 tests (page rendering, booking creation, API endpoints, validation, edge cases)
+- [x] Booking confirmation email (queued Mailable to customer + notification to business)
+- [x] Customer booking management (view bookings, cancel, reschedule with 24hr policy, signed URL guest access)
+- [x] Stub user upgrade on registration (anti-email-enumeration, case-insensitive)
+- [x] Breed autosuggest (API + inline autocomplete on booking form)
+- [x] Intent-aware verification redirect (customer → /my-bookings, business → /onboarding)
+
+### Phase 7b: Booking Confirmation & Reminders
+
+- [ ] Auto-confirm setting: business toggle in settings (`auto_confirm_bookings`, default true)
+- [ ] Manual confirm: new bookings created as `pending`, business confirms → `confirmed`
+- [ ] Auto-confirm: new bookings created directly as `confirmed`
+- [ ] Booking reminders (24hr email, 2hr SMS) — scheduled task, populate `reminder_sent_at` fields
+
+---
+
+## Phase 8: Payment Integration (Week 9-10)
 
 - [ ] Stripe setup (Cashier, webhooks, test mode)
 - [ ] Subscription management (checkout, portal, webhooks)
@@ -177,7 +208,7 @@
 
 ---
 
-## Phase 8: Notification System (Week 9)
+## Phase 9: Notification System (Week 10)
 
 - [ ] Email setup (Postmark/SES, templates, queues)
 - [ ] SMS setup (Twilio, templates, quota tracking)
@@ -185,16 +216,17 @@
 
 ---
 
-## Phase 9: Admin Dashboard (Week 10)
+## Phase 10: Admin Dashboard (Week 11)
 
 - [ ] Admin layout (subdomain routing, middleware)
 - [ ] Business management (list, verify, suspend)
 - [ ] Platform analytics (MRR, churn, approvals)
 - [ ] User management (list, roles, impersonate)
+- [ ] Business settings UI: auto-confirm bookings toggle (`settings.auto_confirm_bookings` — backend already wired in Phase 7b)
 
 ---
 
-## Phase 10: Reviews System (Week 10-11)
+## Phase 11: Reviews System (Week 11-12)
 
 - [ ] Review submission (public form, automated request)
 - [ ] Review management (respond, flag, notifications)
@@ -202,7 +234,7 @@
 
 ---
 
-## Phase 11: Salon Tier Features (Week 11-12)
+## Phase 12: Salon Tier Features (Week 12-13)
 
 - [ ] Multi-staff management (calendars, commission)
 - [ ] Multi-location management (up to 3, location-specific services)
@@ -212,7 +244,7 @@
 
 ---
 
-## Phase 12: Marketing Tools & SEO (Week 12-13)
+## Phase 13: Marketing Tools & SEO (Week 13-14)
 
 - [ ] Calculators (no-show cost, pricing, admin time audit)
 - [ ] Blog setup (Statamic collection, initial posts)
@@ -221,7 +253,7 @@
 
 ---
 
-## Phase 13: Launch Preparation (Week 14)
+## Phase 14: Launch Preparation (Week 15)
 
 - [ ] Legal pages (T&Cs, privacy, cookie, refund policies)
 - [ ] Cross-browser & mobile testing
@@ -232,7 +264,7 @@
 
 ---
 
-## Phase 14: Beta Launch (Week 15-16)
+## Phase 15: Beta Launch (Week 16-17)
 
 - [ ] Beta user recruitment (10-20 groomers)
 - [ ] Onboarding improvements (based on feedback)
@@ -241,7 +273,7 @@
 
 ---
 
-## Phase 15: Public Launch (Week 17+)
+## Phase 16: Public Launch (Week 18+)
 
 - [ ] Launch marketing (blog, PR, ads, social)
 - [ ] Growth tactics (referral programs, partnerships)

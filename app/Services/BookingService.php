@@ -135,6 +135,9 @@ class BookingService
             $user = $this->findOrCreateUser($data['name'], $data['email']);
             $customer = $this->findOrCreateCustomer($location->business_id, $user, $data['phone']);
 
+            $location->loadMissing('business');
+            $autoConfirm = $location->business->settings['auto_confirm_bookings'] ?? true;
+
             $booking = Booking::create([
                 'business_id' => $location->business_id,
                 'location_id' => $location->id,
@@ -143,7 +146,7 @@ class BookingService
                 'staff_member_id' => $staff?->id,
                 'appointment_datetime' => $appointmentDatetime,
                 'duration_minutes' => $totalDuration,
-                'status' => 'pending',
+                'status' => $autoConfirm ? 'confirmed' : 'pending',
                 'booking_reference' => Booking::generateReference(),
                 'price' => $totalPrice,
                 'payment_status' => 'pending',

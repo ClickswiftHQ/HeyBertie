@@ -1,18 +1,28 @@
 @extends('layouts.marketing')
 
-@section('title', 'Booking Confirmed — ' . $business->name)
+@section('title', ($booking->status === 'confirmed' ? 'Booking Confirmed' : 'Booking Received') . ' — ' . $business->name)
 
 @section('content')
     <div class="mx-auto max-w-2xl px-4 py-12 sm:px-6">
-        {{-- Success Icon --}}
+        {{-- Status Icon --}}
         <div class="text-center">
-            <div class="mx-auto flex size-16 items-center justify-center rounded-full bg-green-100">
-                <svg class="size-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                </svg>
-            </div>
-            <h1 class="mt-4 text-2xl font-semibold text-gray-900">Booking Confirmed</h1>
-            <p class="mt-2 text-gray-500">Your appointment has been booked. We'll be in touch to confirm.</p>
+            @if ($booking->status === 'confirmed')
+                <div class="mx-auto flex size-16 items-center justify-center rounded-full bg-green-100">
+                    <svg class="size-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                    </svg>
+                </div>
+                <h1 class="mt-4 text-2xl font-semibold text-gray-900">Booking Confirmed</h1>
+                <p class="mt-2 text-gray-500">Your appointment has been confirmed.</p>
+            @else
+                <div class="mx-auto flex size-16 items-center justify-center rounded-full bg-amber-100">
+                    <svg class="size-8 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                    </svg>
+                </div>
+                <h1 class="mt-4 text-2xl font-semibold text-gray-900">Booking Received</h1>
+                <p class="mt-2 text-gray-500">Your booking has been received and is awaiting confirmation from the business.</p>
+            @endif
         </div>
 
         {{-- Reference --}}

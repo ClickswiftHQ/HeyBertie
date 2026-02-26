@@ -20,8 +20,12 @@ class NewBookingNotification extends Mailable implements ShouldQueue
 
     public function envelope(): Envelope
     {
+        $subject = $this->booking->status === 'pending'
+            ? "Action Required: New Booking {$this->booking->booking_reference}"
+            : "New Booking: {$this->booking->booking_reference}";
+
         return new Envelope(
-            subject: "New Booking: {$this->booking->booking_reference}",
+            subject: $subject,
         );
     }
 

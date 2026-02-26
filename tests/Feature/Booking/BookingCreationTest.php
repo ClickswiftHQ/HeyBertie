@@ -1,5 +1,7 @@
 <?php
 
+use App\Mail\BookingConfirmation;
+use App\Mail\NewBookingNotification;
 use App\Models\AvailabilityBlock;
 use App\Models\Booking;
 use App\Models\BookingItem;
@@ -8,6 +10,7 @@ use App\Models\Customer;
 use App\Models\Location;
 use App\Models\Service;
 use App\Models\User;
+use Illuminate\Support\Facades\Mail;
 
 beforeEach(function () {
     $this->business = Business::factory()->solo()->completed()->verified()->create();
@@ -68,7 +71,7 @@ it('creates a booking with multiple services', function () {
         ->and($booking->pet_breed)->toBe('Cockapoo')
         ->and($booking->pet_size)->toBe('medium')
         ->and($booking->customer_notes)->toBe('Nervous around clippers')
-        ->and($booking->status)->toBe('pending')
+        ->and($booking->status)->toBe('confirmed')
         ->and($booking->payment_status)->toBe('pending');
 
     expect(BookingItem::where('booking_id', $booking->id)->count())->toBe(2);
@@ -193,6 +196,89 @@ it('validates pet size is one of the allowed values', function () {
         'pet_size' => 'huge',
     ])->assertUnprocessable()
         ->assertJsonValidationErrors(['pet_size']);
+});
+
+it('creates a confirmed booking when auto-confirm is enabled (default)', function () {
+    $this->postJson(route('booking.store', [$this->business->handle, $this->location->slug]), [
+        'service_ids' => [$this->service1->id],
+        'appointment_datetime' => $this->appointmentDatetime,
+        'name' => 'Auto Confirm',
+        'email' => 'autoconfirm@example.com',
+        'phone' => '07700900010',
+        'pet_name' => 'Buddy',
+    ])->assertSuccessful();
+
+    $booking = Booking::where('business_id', $this->business->id)->latest()->first();
+    expect($booking->status)->toBe('confirmed');
+});
+
+it('creates a pending booking when auto-confirm is disabled', function () {
+    $this->business->update(['settings' => ['auto_confirm_bookings' => false]]);
+
+    $this->postJson(route('booking.store', [$this->business->handle, $this->location->slug]), [
+        'service_ids' => [$this->service1->id],
+        'appointment_datetime' => $this->appointmentDatetime,
+        'name' => 'Manual Confirm',
+        'email' => 'manualconfirm@example.com',
+        'phone' => '07700900011',
+        'pet_name' => 'Shadow',
+    ])->assertSuccessful();
+
+    $booking = Booking::where('business_id', $this->business->id)->latest()->first();
+    expect($booking->status)->toBe('pending');
+});
+
+it('sends "Booking Received" email for pending bookings', function () {
+    Mail::fake();
+    $this->business->update(['settings' => ['auto_confirm_bookings' => false]]);
+
+    $this->postJson(route('booking.store', [$this->business->handle, $this->location->slug]), [
+        'service_ids' => [$this->service1->id],
+        'appointment_datetime' => $this->appointmentDatetime,
+        'name' => 'Pending Customer',
+        'email' => 'pending@example.com',
+        'phone' => '07700900012',
+        'pet_name' => 'Daisy',
+    ])->assertSuccessful();
+
+    Mail::assertQueued(BookingConfirmation::class, function (BookingConfirmation $mail) {
+        return str_contains($mail->envelope()->subject, 'Booking Received');
+    });
+});
+
+it('sends "Booking Confirmed" email for auto-confirmed bookings', function () {
+    Mail::fake();
+
+    $this->postJson(route('booking.store', [$this->business->handle, $this->location->slug]), [
+        'service_ids' => [$this->service1->id],
+        'appointment_datetime' => $this->appointmentDatetime,
+        'name' => 'Confirmed Customer',
+        'email' => 'confirmed@example.com',
+        'phone' => '07700900013',
+        'pet_name' => 'Duke',
+    ])->assertSuccessful();
+
+    Mail::assertQueued(BookingConfirmation::class, function (BookingConfirmation $mail) {
+        return str_contains($mail->envelope()->subject, 'Booking Confirmed');
+    });
+});
+
+it('sends "Action Required" email to business for pending bookings', function () {
+    Mail::fake();
+    $this->business->update(['settings' => ['auto_confirm_bookings' => false]]);
+
+    $this->postJson(route('booking.store', [$this->business->handle, $this->location->slug]), [
+        'service_ids' => [$this->service1->id],
+        'appointment_datetime' => $this->appointmentDatetime,
+        'name' => 'Action Customer',
+        'email' => 'action@example.com',
+        'phone' => '07700900014',
+        'pet_name' => 'Rocky',
+    ])->assertSuccessful();
+
+    Mail::assertQueued(NewBookingNotification::class, function (NewBookingNotification $mail) {
+        return str_contains($mail->envelope()->subject, 'Action Required');
+    });
 });
 
 it('generates unique booking references', function () {

@@ -1,6 +1,10 @@
 <x-mail::message>
 # New Booking Received
 
+@if ($booking->status === 'pending')
+> **Action Required:** This booking requires your confirmation. Please review and confirm it from your dashboard.
+
+@endif
 A new booking has been made.
 
 **Booking Reference:** {{ $booking->booking_reference }}

@@ -1,9 +1,13 @@
 <x-mail::message>
-# Booking Confirmed
+# {{ $booking->status === 'confirmed' ? 'Booking Confirmed' : 'Booking Received' }}
 
 Hi {{ $booking->customer->name }},
 
+@if ($booking->status === 'confirmed')
 Your booking with **{{ $booking->business->name }}** has been confirmed.
+@else
+Your booking with **{{ $booking->business->name }}** has been received and is awaiting confirmation from the business.
+@endif
 
 **Booking Reference:** {{ $booking->booking_reference }}
 
