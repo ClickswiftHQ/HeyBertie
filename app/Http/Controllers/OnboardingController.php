@@ -301,54 +301,45 @@ class OnboardingController extends Controller
     }
 
     /**
-     * @return list<array{tier: string, name: string, price: float, features: list<string>, highlighted: bool, cta: string}>
+     * @return list<array{tier: string, name: string, price: float, trial_days: int, features: list<string>, highlighted: bool, cta: string}>
      */
     private function getPlans(): array
     {
-        return [
-            [
-                'tier' => 'free',
-                'name' => 'Free',
-                'price' => 0,
-                'features' => [
-                    'Business listing',
-                    'Handle URL (@name)',
-                ],
-                'highlighted' => false,
-                'cta' => 'Start Free',
+        $featuresBySlug = [
+            'free' => [
+                'Business listing',
+                'Handle URL (@name)',
             ],
-            [
-                'tier' => 'solo',
-                'name' => 'Solo',
-                'price' => 29,
-                'features' => [
-                    'Everything in Free',
-                    'Booking calendar',
-                    'Online payments',
-                    'CRM / customer notes',
-                    '30 SMS reminders/month',
-                    'Unlimited email reminders',
-                    'Basic analytics',
-                ],
-                'highlighted' => true,
-                'cta' => 'Start 14-day Trial',
+            'solo' => [
+                'Everything in Free',
+                'Booking calendar',
+                'Online payments',
+                'CRM / customer notes',
+                '30 SMS reminders/month',
+                'Unlimited email reminders',
+                'Basic analytics',
             ],
-            [
-                'tier' => 'salon',
-                'name' => 'Salon',
-                'price' => 79,
-                'features' => [
-                    'Everything in Solo',
-                    'Up to 5 staff calendars',
-                    'Up to 3 locations',
-                    '100 SMS reminders/month',
-                    'Loyalty program',
-                    'Advanced analytics',
-                    'Priority support',
-                ],
-                'highlighted' => false,
-                'cta' => 'Start 14-day Trial',
+            'salon' => [
+                'Everything in Solo',
+                'Up to 5 staff calendars',
+                'Up to 3 locations',
+                '100 SMS reminders/month',
+                'Loyalty program',
+                'Advanced analytics',
+                'Priority support',
             ],
         ];
+
+        return SubscriptionTier::orderBy('sort_order')->get()->map(fn (SubscriptionTier $tier) => [
+            'tier' => $tier->slug,
+            'name' => $tier->name,
+            'price' => $tier->monthly_price_pence / 100,
+            'trial_days' => $tier->trial_days,
+            'features' => $featuresBySlug[$tier->slug] ?? [],
+            'highlighted' => $tier->slug === 'solo',
+            'cta' => $tier->trial_days > 0
+                ? "Start {$tier->trial_days}-day Trial"
+                : 'Start Free',
+        ])->all();
     }
 }

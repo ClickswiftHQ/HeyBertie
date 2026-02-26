@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Laravel\Cashier\Billable;
 
 /**
  * @property int $id
@@ -108,7 +109,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Business extends Model
 {
     /** @use HasFactory<\Database\Factories\BusinessFactory> */
-    use HasFactory, SoftDeletes;
+    use Billable, HasFactory, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -123,8 +124,9 @@ class Business extends Model
         'subscription_tier_id',
         'subscription_status_id',
         'trial_ends_at',
-        'stripe_customer_id',
-        'stripe_subscription_id',
+        'stripe_id',
+        'pm_type',
+        'pm_last_four',
         'verification_status',
         'verification_notes',
         'verified_at',
@@ -320,6 +322,46 @@ class Business extends Model
     public function canAccess(User $user): bool
     {
         return $this->isOwner($user) || $this->hasStaff($user);
+    }
+
+    /**
+     * Whether the business is on a generic (non-Stripe) trial.
+     */
+    public function onGenericTrial(): bool
+    {
+        return $this->trial_ends_at && $this->trial_ends_at->isFuture();
+    }
+
+    /**
+     * Whether the business has an active subscription (Cashier or generic trial).
+     */
+    public function hasActiveSubscription(): bool
+    {
+        return $this->subscribed('default') || $this->onGenericTrial();
+    }
+
+    /**
+     * Whether the business can accept bookings (paid tier + active subscription).
+     */
+    public function canAcceptBookings(): bool
+    {
+        return $this->subscriptionTier->slug !== 'free' && $this->hasActiveSubscription();
+    }
+
+    /**
+     * Get the customer name that should be synced to Stripe.
+     */
+    public function stripeName(): ?string
+    {
+        return $this->name;
+    }
+
+    /**
+     * Get the customer email that should be synced to Stripe.
+     */
+    public function stripeEmail(): ?string
+    {
+        return $this->email;
     }
 
     public function canAddStaff(): bool

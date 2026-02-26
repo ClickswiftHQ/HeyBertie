@@ -2,11 +2,13 @@
 
 namespace App\Providers;
 
+use App\Models\Business;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Laravel\Cashier\Cashier;
 use Statamic\Auth\Protect\ProtectorManager;
 
 class AppServiceProvider extends ServiceProvider
@@ -25,6 +27,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+
+        Cashier::useCustomerModel(Business::class);
 
         app(ProtectorManager::class)->extend('super_admin', fn () => new \App\Auth\Protect\SuperAdmin);
     }

@@ -210,7 +210,7 @@ class OnboardingService
             $business->update([
                 'subscription_tier_id' => $tier->id,
                 'subscription_status_id' => $trialStatus->id,
-                'trial_ends_at' => $tier->slug === 'free' ? null : now()->addDays(14),
+                'trial_ends_at' => $tier->trial_days > 0 ? now()->addDays($tier->trial_days) : null,
                 'is_active' => true,
                 'onboarding_completed' => true,
                 'onboarding' => array_merge($onboarding, [

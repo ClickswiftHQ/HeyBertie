@@ -10,6 +10,7 @@ use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PostcodeLookupController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SearchSuggestController;
+use App\Http\Controllers\SubscriptionController;
 use App\Models\Business;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -129,6 +130,16 @@ Route::middleware(['auth', 'verified', 'onboarding.complete', 'business.manage']
     ->group(function () {
         Route::get('/{handle}/dashboard', DashboardController::class)
             ->name('business.dashboard');
+
+        // Subscription management
+        Route::get('/{handle}/subscription/checkout', [SubscriptionController::class, 'checkout'])
+            ->name('subscription.checkout');
+        Route::get('/{handle}/subscription/success', [SubscriptionController::class, 'success'])
+            ->name('subscription.success');
+        Route::get('/{handle}/subscription/cancel', [SubscriptionController::class, 'cancelled'])
+            ->name('subscription.cancelled');
+        Route::get('/{handle}/billing', [SubscriptionController::class, 'billingPortal'])
+            ->name('subscription.billing');
     });
 
 // Vanity handle routes — MUST be LAST (catch-all-like pattern)

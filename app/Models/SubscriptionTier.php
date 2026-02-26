@@ -38,10 +38,12 @@ class SubscriptionTier extends Model
     protected $fillable = [
         'name',
         'slug',
+        'stripe_price_id',
         'monthly_price_pence',
         'staff_limit',
         'location_limit',
         'sms_quota',
+        'trial_days',
         'sort_order',
     ];
 

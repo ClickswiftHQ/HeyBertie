@@ -20,7 +20,7 @@ class ResolveManagedBusiness
             ->where('handle', $handle)
             ->where('is_active', true)
             ->where('onboarding_completed', true)
-            ->with('subscriptionTier:id,slug,name')
+            ->with('subscriptionTier:id,slug,name,stripe_price_id,trial_days')
             ->first();
 
         abort_if(! $business, 404);

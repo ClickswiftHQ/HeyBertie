@@ -48,7 +48,7 @@ class BusinessFactory extends Factory
     public function solo(): static
     {
         return $this->state(fn (array $attributes) => [
-            'subscription_tier_id' => fn () => SubscriptionTier::firstOrCreate(['slug' => 'solo'], ['name' => 'Solo', 'monthly_price_pence' => 1999, 'sms_quota' => 30, 'sort_order' => 2])->id,
+            'subscription_tier_id' => fn () => SubscriptionTier::firstOrCreate(['slug' => 'solo'], ['name' => 'Solo', 'monthly_price_pence' => 1999, 'sms_quota' => 30, 'trial_days' => 14, 'sort_order' => 2])->id,
             'subscription_status_id' => fn () => SubscriptionStatus::firstOrCreate(['slug' => 'active'], ['name' => 'Active', 'sort_order' => 2])->id,
         ]);
     }
@@ -56,8 +56,16 @@ class BusinessFactory extends Factory
     public function salon(): static
     {
         return $this->state(fn (array $attributes) => [
-            'subscription_tier_id' => fn () => SubscriptionTier::firstOrCreate(['slug' => 'salon'], ['name' => 'Salon', 'monthly_price_pence' => 4999, 'staff_limit' => 5, 'location_limit' => 3, 'sms_quota' => 100, 'sort_order' => 3])->id,
+            'subscription_tier_id' => fn () => SubscriptionTier::firstOrCreate(['slug' => 'salon'], ['name' => 'Salon', 'monthly_price_pence' => 4999, 'staff_limit' => 5, 'location_limit' => 3, 'sms_quota' => 100, 'trial_days' => 14, 'sort_order' => 3])->id,
             'subscription_status_id' => fn () => SubscriptionStatus::firstOrCreate(['slug' => 'active'], ['name' => 'Active', 'sort_order' => 2])->id,
+        ]);
+    }
+
+    public function trialExpired(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'subscription_status_id' => fn () => SubscriptionStatus::firstOrCreate(['slug' => 'trial'], ['name' => 'Trial', 'sort_order' => 1])->id,
+            'trial_ends_at' => now()->subDay(),
         ]);
     }
 
