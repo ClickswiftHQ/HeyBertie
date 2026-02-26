@@ -4,92 +4,131 @@
 
 ## Where we left off
 
-**Address & Geocoding Strategy — rework in progress.** We implemented the initial plan (PostcodeFormatter, postcode normalisation, postcodes table, ONSPD import, GeocodingService updates, PostcodeLookupController, Find Address in onboarding). Then we rethought the architecture and decided to rework it. The rework is planned but **not yet implemented**.
+**Phase 8a (Stripe Subscription Management) — fully implemented.** Phase 8b planned but not yet started.
 
-## What was implemented (and is still in the codebase)
+---
 
-All of this was built and tests pass (304 tests):
+## Next up: Phase 8b — Post-Onboarding Checkout Redirect & Dashboard Subscription Banner
 
-| File | Status |
+**Goal**: Redirect paid-tier users to Stripe Checkout immediately after onboarding, and add a contextual subscription banner to the dashboard.
+
+### Step 1: Redirect paid-tier users to Stripe Checkout after onboarding
+
+**File:** `app/Http/Controllers/OnboardingController.php` (line 187-189)
+
+After `$this->onboardingService->finalize($business)`, check if the tier has a `stripe_price_id`. If so, redirect to `subscription.checkout` instead of the dashboard.
+
+```php
+$this->onboardingService->finalize($business);
+$business->refresh();
+
+if ($business->subscriptionTier->stripe_price_id) {
+    return redirect()->route('subscription.checkout', $business->handle);
+}
+
+return redirect()->route('business.dashboard', $business->handle)
+    ->with('success', 'Your business has been created! Welcome to heyBertie.');
+```
+
+- Free tier has `stripe_price_id = null` → goes to dashboard as normal
+- Solo/Salon have `stripe_price_id` set → goes to Stripe Checkout
+- If user cancels out of Checkout, the existing `subscription.cancelled` route redirects to dashboard with info flash
+
+### Step 2: Add subscription data to shared Inertia props
+
+**File:** `app/Http/Middleware/HandleInertiaRequests.php` (`getCurrentBusiness()`)
+
+Add three fields:
+
+```php
+'has_active_subscription' => $business->hasActiveSubscription(),
+'on_trial' => $business->onGenericTrial(),
+'trial_days_remaining' => $business->trial_ends_at && $business->trial_ends_at->isFuture()
+    ? (int) ceil(now()->floatDiffInDays($business->trial_ends_at, false))
+    : null,
+```
+
+Update the PHPDoc `@return` to include the new keys.
+
+### Step 3: Update TypeScript types
+
+**File:** `resources/js/types/business.ts`
+
+Add to `CurrentBusiness`:
+
+```ts
+has_active_subscription: boolean;
+on_trial: boolean;
+trial_days_remaining: number | null;
+```
+
+### Step 4: Create subscription banner component
+
+**New file:** `resources/js/components/dashboard/subscription-banner.tsx`
+
+Reads `currentBusiness` from `usePage().props`. Four states:
+
+| State | Style | Message | CTA |
+|-------|-------|---------|-----|
+| Active subscriber (not on trial) | Hidden | — | — |
+| Free tier | Blue | "Want to accept bookings online?" | None (no pricing page yet) |
+| On trial, >3 days left | Blue | "X days left in your free trial" | "Subscribe now" → checkout |
+| On trial, ≤3 days left | Amber | "X days left in your free trial" | "Subscribe now" → checkout |
+| Trial expired / no subscription | Red | "Your trial has ended" | "Subscribe now" → checkout |
+
+Uses existing `Alert`/`AlertTitle`/`AlertDescription` from `resources/js/components/ui/alert.tsx` and `lucide-react` icons.
+
+### Step 5: Wire banner into dashboard
+
+**File:** `resources/js/pages/dashboard/index.tsx` (line 43)
+
+Add `<SubscriptionBanner />` at the top of the content area, before the stat cards grid.
+
+### Step 6: Tests
+
+**6a. Onboarding redirect tests** — `tests/Feature/Onboarding/OnboardingFlowTest.php`
+- Ensure `solo`/`salon` tier seeders include `stripe_price_id`
+- Add test: submit with paid tier → redirects to `subscription.checkout`
+- Add test: submit with free tier → redirects to `business.dashboard`
+
+**6b. Dashboard subscription props tests** — New file `tests/Feature/Dashboard/DashboardSubscriptionBannerTest.php`
+- Trial business → `has_active_subscription: true`, `on_trial: true`, `trial_days_remaining: X`
+- Expired trial → `has_active_subscription: false`, `on_trial: false`, `trial_days_remaining: null`
+- Free tier → `subscription_tier: 'free'`, `has_active_subscription: false`
+
+### Step 7: Verification
+
+1. `vendor/bin/pint --dirty --format agent`
+2. `php artisan test --compact --filter=Onboarding`
+3. `php artisan test --compact --filter=DashboardSubscription`
+
+### Critical files
+
+| File | Change |
 |------|--------|
-| `app/Support/PostcodeFormatter.php` | **New** — `format()` and `isValid()` static methods. KEEP. |
-| `app/Models/Location.php` | **Modified** — `boot()` saving event normalises postcodes. KEEP. |
-| `app/Http/Requests/Onboarding/StoreLocationRequest.php` | **Modified** — `prepareForValidation()` normalises postcode. KEEP. |
-| `database/migrations/2026_02_21_221145_normalise_existing_postcodes.php` | **New** — fixes existing location postcodes. KEEP. |
-| `database/migrations/2026_02_21_221146_create_postcodes_table.php` | **New** — creates `postcodes` table. **REPLACE** with cache tables. |
-| `app/Console/Commands/ImportPostcodesCommand.php` | **New** — ONSPD CSV import. **DELETE** — no longer needed. |
-| `app/Services/GeocodingService.php` | **Modified** — checks local postcodes table + city names via SearchService. **REWORK** to use cache models. |
-| `app/Http/Controllers/PostcodeLookupController.php` | **New** — `GET /api/postcode-lookup/{postcode}`. KEEP. |
-| `routes/web.php` | **Modified** — added postcode lookup route. KEEP. |
-| `resources/js/pages/onboarding/grooming/step-4-location.tsx` | **Modified** — Find Address button + address dropdown. KEEP. |
-| `tests/Unit/Support/PostcodeFormatterTest.php` | **New** — 16 tests. KEEP. |
-| `tests/Feature/Search/SearchGeocodingTest.php` | **New** — 5 tests. **UPDATE** for new cache tables. |
-| `tests/Feature/PostcodeLookupTest.php` | **New** — 3 tests. KEEP (mocks GeocodingService). |
-| `tests/Feature/Onboarding/StepValidationTest.php` | **Modified** — added postcode normalisation test. KEEP. |
+| `app/Http/Controllers/OnboardingController.php` | Conditional redirect to Checkout for paid tiers |
+| `app/Http/Middleware/HandleInertiaRequests.php` | Add subscription fields to shared props |
+| `resources/js/types/business.ts` | Extend `CurrentBusiness` type |
+| `resources/js/components/dashboard/subscription-banner.tsx` | New — contextual banner component |
+| `resources/js/pages/dashboard/index.tsx` | Render banner above stat cards |
+| `tests/Feature/Onboarding/OnboardingFlowTest.php` | Add redirect assertion tests |
+| `tests/Feature/Dashboard/DashboardSubscriptionBannerTest.php` | New — test subscription props |
 
-## The rework: what needs to change
+---
 
-### Problem with current approach
+## Failing tests (pre-existing)
 
-1. The `postcodes` table (ONSPD import, 1.7M rows) is unnecessary — postcode lookups via Ideal Postcodes API are paid per-use anyway, so we should cache results as they come in, not pre-load a massive dataset.
-2. The hardcoded city list in `SearchService::LOCATIONS` (~30 entries) is too limited for search.
-3. Ideal Postcodes API **cannot geocode city/town names** — it only handles postcodes.
+7 tests fail — all dashboard/E2E related (Vite manifest missing — needs `npm run build`):
 
-### Two new cache tables
+| Test file | Failures |
+|-----------|----------|
+| `tests/Feature/Dashboard/BusinessContextTest.php` | 4 |
+| `tests/Feature/Dashboard/DashboardAccessTest.php` | 2 |
+| `tests/Feature/E2E/BusinessOwnerJourneyTest.php` | 1 |
 
-**`geocode_cache`** — search term → lat/lng (powers the search page)
-- `query` (string, primary key — normalised lowercase)
-- `display_name` (string — e.g. "London", "SW1A 1AA")
-- `latitude` / `longitude` (decimal)
-- `created_at` / `updated_at`
-- Seeded with the 30 hardcoded cities from `SearchService::LOCATIONS`
-- Grows as postcodes are searched (API result cached here too)
+---
 
-**`address_cache`** — postcode → full address rows (powers onboarding "Find Address")
-- `id` (auto-increment)
-- `postcode` (string, indexed — normalised e.g. "SW1A 1AA")
-- `line_1`, `line_2`, `line_3`, `post_town`, `county` (strings)
-- `latitude` / `longitude` (decimal)
-- `created_at` / `updated_at`
-- Each row is one address. A postcode has many rows.
-- Populated when a user looks up a postcode via the API. Never paid for twice.
+## Still pending (lower priority)
 
-### Late finding: townslist.co.uk dataset
-
-Found https://www.townslist.co.uk/ — a comprehensive UK towns/cities dataset. Sample at `storage/data/uk-towns-sample.csv` (~1,800 rows in sample, full dataset presumably larger). Each row has:
-
-- `name` — town/city/village name (e.g. "Guildford", "Abberton")
-- `county`, `country` — for disambiguation ("Abberton, Essex" vs "Abberton, Worcestershire")
-- `latitude`, `longitude` — exactly what geocode_cache needs
-- `type` — Village, Suburban Area, Hamlet, Locality etc.
-
-**This changes everything.** We can seed `geocode_cache` with this dataset instead of just 30 hardcoded cities. Every UK town/village gets lat/lng for free, no API needed.
-
-### Revised search approach (decide tomorrow)
-
-With the townslist data, the hybrid distinction may no longer be needed. The search flow becomes uniform:
-
-1. User types anything ("London", "Guildford", "Fulham") → match in `geocode_cache` (seeded from townslist) → get lat/lng → radius-based search with distance sorting
-2. User types a postcode ("SW1A 1AA") → not in `geocode_cache` → Ideal Postcodes API → cache in `geocode_cache` + `address_cache` → radius-based search
-
-All searches use the same lat/lng + radius path. No separate text-matching logic needed. The townslist dataset eliminates the need for Nominatim, and the `geocode_cache` still grows over time from postcode lookups.
-
-**Questions to resolve:**
-- Do we buy the full townslist dataset or is the sample enough?
-- Do we need autocomplete/typeahead on the search input? (The geocode_cache would power suggestions as the user types)
-- How to handle ambiguity (e.g. two "Abberton" entries — show "Abberton, Essex" vs "Abberton, Worcestershire")?
-
-## Plan file
-
-The detailed implementation plan is at: `.claude/plans/glowing-meandering-patterson.md`
-
-It currently describes the cache table rework (Steps 1-7, file changes, test updates, verification). It does **not** yet include the search approach decision (hybrid vs text-only). Update the plan once the search approach is decided.
-
-## Key files to review when resuming
-
-- `app/Services/GeocodingService.php` — needs rework
-- `app/Services/SearchService.php` — has `LOCATIONS` const and `resolveLocation()`
-- `app/Http/Controllers/SearchController.php` — `index()` and `landing()` methods
-- `tests/Feature/Search/SearchRouteTest.php` — will need geocode_cache seeding
-- `tests/Feature/Search/SearchSchemaTest.php` — will need geocode_cache seeding
-- `tests/Unit/Services/SearchServiceTest.php` — will need to move to Feature + seed DB
+- **Address & Geocoding rework** — `geocode_cache` + `address_cache` tables, plan at `.claude/plans/glowing-meandering-patterson.md`
+- **Phase 7 follow-ups** — Booking confirmation email, customer booking management (view & amend)
