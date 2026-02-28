@@ -11,8 +11,8 @@ use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
     SubscriptionTier::firstOrCreate(['slug' => 'free'], ['name' => 'Free', 'monthly_price_pence' => 0, 'sort_order' => 1]);
-    SubscriptionTier::firstOrCreate(['slug' => 'solo'], ['name' => 'Solo', 'monthly_price_pence' => 2900, 'sms_quota' => 30, 'sort_order' => 2]);
-    SubscriptionTier::firstOrCreate(['slug' => 'salon'], ['name' => 'Salon', 'monthly_price_pence' => 7900, 'staff_limit' => 5, 'location_limit' => 3, 'sms_quota' => 100, 'sort_order' => 3]);
+    SubscriptionTier::updateOrCreate(['slug' => 'solo'], ['name' => 'Solo', 'monthly_price_pence' => 2900, 'stripe_price_id' => 'price_solo_test', 'sms_quota' => 30, 'trial_days' => 14, 'sort_order' => 2]);
+    SubscriptionTier::updateOrCreate(['slug' => 'salon'], ['name' => 'Salon', 'monthly_price_pence' => 7900, 'stripe_price_id' => 'price_salon_test', 'staff_limit' => 5, 'location_limit' => 3, 'sms_quota' => 100, 'trial_days' => 14, 'sort_order' => 3]);
     SubscriptionStatus::firstOrCreate(['slug' => 'trial'], ['name' => 'Trial', 'sort_order' => 1]);
     SubscriptionStatus::firstOrCreate(['slug' => 'active'], ['name' => 'Active', 'sort_order' => 2]);
     BusinessRole::firstOrCreate(['slug' => 'owner'], ['name' => 'Owner', 'sort_order' => 1]);
@@ -204,4 +204,64 @@ test('completed onboarding redirects to dashboard', function () {
     $this->actingAs($user)
         ->get(route('onboarding.index'))
         ->assertRedirect(route('dashboard'));
+});
+
+test('submitting with free tier redirects to dashboard', function () {
+    Storage::fake('local');
+
+    $user = User::factory()->create(['email_verified_at' => now()]);
+    $this->actingAs($user);
+
+    $this->post(route('onboarding.store', 1), ['business_type' => 'salon']);
+    $this->post(route('onboarding.store', 2), ['name' => 'Free Paws']);
+    $this->post(route('onboarding.store', 3), ['handle' => 'free-paws']);
+    $this->post(route('onboarding.store', 4), [
+        'address_line_1' => '1 Free Lane',
+        'town' => 'Camden',
+        'city' => 'London',
+        'postcode' => 'NW1 0AA',
+    ]);
+    $this->post(route('onboarding.store', 5), [
+        'services' => [['name' => 'Wash', 'description' => '', 'duration_minutes' => 30, 'price' => 15, 'price_type' => 'fixed']],
+    ]);
+    $this->post(route('onboarding.store', 6), [
+        'photo_id' => UploadedFile::fake()->image('id.jpg')->size(500),
+    ]);
+    $this->post(route('onboarding.store', 7), ['tier' => 'free']);
+
+    $this->post(route('onboarding.submit'))
+        ->assertRedirectContains('/dashboard');
+
+    $business = Business::where('owner_user_id', $user->id)->first();
+    expect($business->subscriptionTier->stripe_price_id)->toBeNull();
+});
+
+test('submitting with paid tier redirects to subscription checkout', function () {
+    Storage::fake('local');
+
+    $user = User::factory()->create(['email_verified_at' => now()]);
+    $this->actingAs($user);
+
+    $this->post(route('onboarding.store', 1), ['business_type' => 'salon']);
+    $this->post(route('onboarding.store', 2), ['name' => 'Solo Paws']);
+    $this->post(route('onboarding.store', 3), ['handle' => 'solo-paws']);
+    $this->post(route('onboarding.store', 4), [
+        'address_line_1' => '1 Solo Lane',
+        'town' => 'Brixton',
+        'city' => 'London',
+        'postcode' => 'SW2 1AA',
+    ]);
+    $this->post(route('onboarding.store', 5), [
+        'services' => [['name' => 'Groom', 'description' => '', 'duration_minutes' => 60, 'price' => 40, 'price_type' => 'fixed']],
+    ]);
+    $this->post(route('onboarding.store', 6), [
+        'photo_id' => UploadedFile::fake()->image('id.jpg')->size(500),
+    ]);
+    $this->post(route('onboarding.store', 7), ['tier' => 'solo']);
+
+    $this->post(route('onboarding.submit'))
+        ->assertRedirectContains('/subscription/checkout');
+
+    $business = Business::where('owner_user_id', $user->id)->first();
+    expect($business->subscriptionTier->stripe_price_id)->not->toBeNull();
 });

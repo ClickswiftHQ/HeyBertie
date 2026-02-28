@@ -49,7 +49,7 @@ class HandleInertiaRequests extends Middleware
     }
 
     /**
-     * @return array{id: int, name: string, handle: string, logo_url: string|null, subscription_tier: string}|null
+     * @return array{id: int, name: string, handle: string, logo_url: string|null, subscription_tier: string, has_active_subscription: bool, on_trial: bool, trial_days_remaining: int|null}|null
      */
     private function getCurrentBusiness(Request $request): ?array
     {
@@ -64,6 +64,11 @@ class HandleInertiaRequests extends Middleware
             'handle' => $business->handle,
             'logo_url' => $business->logo_url,
             'subscription_tier' => $business->subscriptionTier->slug ?? 'free',
+            'has_active_subscription' => $business->hasActiveSubscription(),
+            'on_trial' => $business->onGenericTrial(),
+            'trial_days_remaining' => $business->trial_ends_at && $business->trial_ends_at->isFuture()
+                ? (int) ceil(now()->floatDiffInDays($business->trial_ends_at, false))
+                : null,
         ];
     }
 

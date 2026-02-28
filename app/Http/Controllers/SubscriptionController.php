@@ -19,12 +19,16 @@ class SubscriptionController extends Controller
                 ->with('error', 'No payment plan is configured for this tier.');
         }
 
-        return $business->newSubscription('default', $tier->stripe_price_id)
-            ->trialDays($tier->trial_days)
-            ->checkout([
-                'success_url' => route('subscription.success', $business->handle),
-                'cancel_url' => route('subscription.cancelled', $business->handle),
-            ]);
+        $subscription = $business->newSubscription('default', $tier->stripe_price_id);
+
+        if ($business->trial_ends_at && $business->trial_ends_at->isFuture()) {
+            $subscription->trialUntil($business->trial_ends_at);
+        }
+
+        return $subscription->checkout([
+            'success_url' => route('subscription.success', $business->handle),
+            'cancel_url' => route('subscription.cancelled', $business->handle),
+        ]);
     }
 
     public function success(Request $request): RedirectResponse

@@ -185,8 +185,14 @@ class OnboardingController extends Controller
         }
 
         $this->onboardingService->finalize($business);
+        $business->refresh();
 
-        return redirect()->route('business.dashboard', $business->handle)->with('success', 'Your business has been created! Welcome to heyBertie.');
+        if ($business->subscriptionTier->stripe_price_id) {
+            return redirect()->route('subscription.checkout', $business->handle);
+        }
+
+        return redirect()->route('business.dashboard', $business->handle)
+            ->with('success', 'Your business has been created! Welcome to heyBertie.');
     }
 
     private function getOrCreateDraft(Request $request): Business

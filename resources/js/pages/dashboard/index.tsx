@@ -8,6 +8,7 @@ import {
 import { QuickActions } from '@/components/dashboard/quick-actions';
 import { RecentActivity } from '@/components/dashboard/recent-activity';
 import { StatCard } from '@/components/dashboard/stat-card';
+import { SubscriptionBanner } from '@/components/dashboard/subscription-banner';
 import { UpcomingBookings } from '@/components/dashboard/upcoming-bookings';
 import AppLayout from '@/layouts/app-layout';
 import type {
@@ -41,6 +42,7 @@ export default function Dashboard({
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Dashboard" />
             <div className="flex flex-1 flex-col gap-6 p-4">
+                <SubscriptionBanner />
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <StatCard
                         label="Today's Bookings"

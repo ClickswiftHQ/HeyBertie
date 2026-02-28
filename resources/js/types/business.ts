@@ -7,6 +7,9 @@ export type BusinessSummary = {
 
 export type CurrentBusiness = BusinessSummary & {
     subscription_tier: string;
+    has_active_subscription: boolean;
+    on_trial: boolean;
+    trial_days_remaining: number | null;
 };
 
 export type OverviewStats = {
