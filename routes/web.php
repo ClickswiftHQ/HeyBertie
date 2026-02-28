@@ -4,7 +4,13 @@ use App\Http\Controllers\BookingController;
 use App\Http\Controllers\BreedSuggestController;
 use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\CustomerBookingController;
+use App\Http\Controllers\Dashboard\AnalyticsController;
+use App\Http\Controllers\Dashboard\AvailabilityController;
+use App\Http\Controllers\Dashboard\BookingManagementController;
+use App\Http\Controllers\Dashboard\CustomerController;
+use App\Http\Controllers\Dashboard\CustomerSearchController;
 use App\Http\Controllers\Dashboard\DashboardController;
+use App\Http\Controllers\Dashboard\ServiceController;
 use App\Http\Controllers\MarketingController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PostcodeLookupController;
@@ -130,6 +136,58 @@ Route::middleware(['auth', 'verified', 'onboarding.complete', 'business.manage']
     ->group(function () {
         Route::get('/{handle}/dashboard', DashboardController::class)
             ->name('business.dashboard');
+
+        // Services management
+        Route::get('/{handle}/services', [ServiceController::class, 'index'])
+            ->name('business.services.index');
+        Route::post('/{handle}/services', [ServiceController::class, 'store'])
+            ->name('business.services.store');
+        Route::post('/{handle}/services/reorder', [ServiceController::class, 'reorder'])
+            ->name('business.services.reorder');
+        Route::put('/{handle}/services/{service}', [ServiceController::class, 'update'])
+            ->name('business.services.update');
+        Route::delete('/{handle}/services/{service}', [ServiceController::class, 'destroy'])
+            ->name('business.services.destroy');
+        Route::patch('/{handle}/services/{service}/toggle-active', [ServiceController::class, 'toggleActive'])
+            ->name('business.services.toggle-active');
+
+        // Customers
+        Route::get('/{handle}/customers', [CustomerController::class, 'index'])
+            ->name('business.customers.index');
+        Route::get('/{handle}/customers/search', CustomerSearchController::class)
+            ->name('business.customers.search');
+
+        // Analytics
+        Route::get('/{handle}/analytics', AnalyticsController::class)
+            ->name('business.analytics');
+
+        // Calendar / Bookings management
+        Route::post('/{handle}/calendar/manual', [BookingManagementController::class, 'storeManual'])
+            ->name('business.calendar.store-manual');
+        Route::get('/{handle}/calendar', [BookingManagementController::class, 'index'])
+            ->name('business.calendar.index');
+        Route::get('/{handle}/calendar/{booking}', [BookingManagementController::class, 'show'])
+            ->name('business.calendar.show');
+        Route::patch('/{handle}/calendar/{booking}/confirm', [BookingManagementController::class, 'confirm'])
+            ->name('business.calendar.confirm');
+        Route::patch('/{handle}/calendar/{booking}/cancel', [BookingManagementController::class, 'cancel'])
+            ->name('business.calendar.cancel');
+        Route::patch('/{handle}/calendar/{booking}/complete', [BookingManagementController::class, 'complete'])
+            ->name('business.calendar.complete');
+        Route::patch('/{handle}/calendar/{booking}/no-show', [BookingManagementController::class, 'noShow'])
+            ->name('business.calendar.no-show');
+        Route::patch('/{handle}/calendar/{booking}/notes', [BookingManagementController::class, 'updateNotes'])
+            ->name('business.calendar.notes');
+
+        // Availability management
+        Route::get('/{handle}/availability', [AvailabilityController::class, 'index'])
+            ->name('business.availability.index');
+        Route::post('/{handle}/availability', [AvailabilityController::class, 'store'])
+            ->name('business.availability.store');
+        Route::put('/{handle}/availability/{availabilityBlock}', [AvailabilityController::class, 'update'])
+            ->name('business.availability.update');
+        Route::delete('/{handle}/availability/{availabilityBlock}', [AvailabilityController::class, 'destroy'])
+            ->name('business.availability.destroy');
 
         // Subscription management
         Route::get('/{handle}/subscription/checkout', [SubscriptionController::class, 'checkout'])
