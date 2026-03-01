@@ -195,6 +195,14 @@ class Business extends Model
     }
 
     /**
+     * @return HasMany<AvailabilityBlock, $this>
+     */
+    public function availabilityBlocks(): HasMany
+    {
+        return $this->hasMany(AvailabilityBlock::class);
+    }
+
+    /**
      * @return HasMany<Service, $this>
      */
     public function services(): HasMany

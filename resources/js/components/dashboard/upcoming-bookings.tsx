@@ -66,7 +66,7 @@ export function UpcomingBookings({ bookings }: UpcomingBookingsProps) {
                                         {booking.customer.name}
                                     </p>
                                     <p className="text-muted-foreground text-xs">
-                                        {booking.service.name} &middot;{' '}
+                                        {booking.service?.name ?? 'Multiple services'} &middot;{' '}
                                         {formatDateTime(
                                             booking.appointment_datetime,
                                         )}

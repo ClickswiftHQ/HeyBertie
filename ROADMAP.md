@@ -4,6 +4,28 @@
 
 **Platform principle:** heyBertie is a sector-agnostic pet services marketplace. Dog grooming is the initial launch vertical, but the schema, terminology, and features must remain generic enough to extend to other sectors (cat sitting, dog walking, pet boarding, mobile vets, etc.) without structural rewrites. Avoid grooming-specific assumptions in models, UI copy, and business logic.
 
+### MVP Gap Analysis
+
+What's needed for a launchable MVP — a business shares a link, customers book, both sides manage bookings.
+
+| Feature | Status | Phase | MVP Priority |
+|---------|--------|-------|--------------|
+| Business listing page | Done | Phase 4 | Must have |
+| Customer booking flow | Done | Phase 7 | Must have |
+| Confirmation emails (customer + business) | Done | Phase 7 | Must have |
+| Customer booking management (view, cancel, reschedule) | Done | Phase 7 | Must have |
+| Stripe subscriptions + checkout redirect | Done | Phase 8a/8b | Must have |
+| Dashboard subscription banner | Done | Phase 8b | Must have |
+| Services management (add, edit, reorder, toggle) | Not started | Phase 5 | Must have |
+| Calendar/bookings view (see + manage bookings) | Not started | Phase 5 | Must have |
+| Availability setup (working hours, breaks, holidays) | Not started | Phase 5 | Must have |
+| Quick actions (new booking, add customer) | Not started | Phase 5 | Must have |
+| Booking reminders (24hr email, 2hr SMS) | Not started | Phase 7b | Must have |
+| Customers list/CRM | Not started | Phase 5 | Nice to have |
+| Analytics page | Not started | Phase 5 | Can defer |
+| Search results page | Not started | Phase 6 | Can defer |
+| Admin dashboard | Not started | Phase 10 | Can defer |
+
 ---
 
 ## Phase 0: Foundation & Setup (Week 1) - COMPLETE
@@ -136,9 +158,14 @@
 
 ---
 
-## Phase 5: Dashboard - Solo Tier (Week 5-7)
+## Phase 5: Dashboard - Solo Tier (Week 5-7) - PARTIAL
 
-- [ ] Dashboard layout (sidebar, business switcher, stats)
+- [x] Dashboard layout (sidebar, business switcher, stats)
+- [x] Business context middleware (handle-scoped routes, currentBusiness shared prop)
+- [x] Stat cards (today's bookings, weekly revenue, total customers, page views)
+- [x] Upcoming bookings and recent activity widgets
+- [x] Quick actions panel
+- [x] Subscription banner (trial countdown, expired warning, free tier CTA)
 - [ ] Calendar/appointments (list view, calendar view, CRUD)
 - [ ] Customer/CRM (search, pet profiles, history, loyalty)
 - [ ] Services management (list, reorder, toggle)
@@ -190,19 +217,39 @@
 - [x] Breed autosuggest (API + inline autocomplete on booking form)
 - [x] Intent-aware verification redirect (customer → /my-bookings, business → /onboarding)
 
-### Phase 7b: Booking Confirmation & Reminders
+### Phase 7b: Booking Confirmation & Reminders - PARTIAL
 
-- [ ] Auto-confirm setting: business toggle in settings (`auto_confirm_bookings`, default true)
-- [ ] Manual confirm: new bookings created as `pending`, business confirms → `confirmed`
-- [ ] Auto-confirm: new bookings created directly as `confirmed`
+- [x] Auto-confirm setting: business toggle in settings (`auto_confirm_bookings`, default true)
+- [x] Auto-confirm: new bookings created directly as `confirmed`
+- [x] Manual confirm: new bookings created as `pending`, conditional email/page copy
 - [ ] Booking reminders (24hr email, 2hr SMS) — scheduled task, populate `reminder_sent_at` fields
 
 ---
 
-## Phase 8: Payment Integration (Week 9-10)
+## Phase 8: Payment Integration (Week 9-10) - PARTIAL
 
-- [ ] Stripe setup (Cashier, webhooks, test mode)
-- [ ] Subscription management (checkout, portal, webhooks)
+### Phase 8a: Stripe Subscription Management - COMPLETE
+
+- [x] Laravel Cashier setup (Billable trait on Business, Stripe customer/subscription columns)
+- [x] `stripe_price_id` and `trial_days` on `subscription_tiers` table
+- [x] Subscription checkout flow (Stripe Checkout Sessions)
+- [x] Stripe trial synced with generic trial (no double trial days)
+- [x] Success/cancel redirect routes
+- [x] Billing portal (Stripe Customer Portal)
+- [x] Stripe webhook handling (customer.subscription.*)
+- [x] `hasActiveSubscription()`, `onGenericTrial()`, `canAcceptBookings()` on Business model
+- [x] Trial expiry command (`subscription:check-trials`)
+
+### Phase 8b: Post-Onboarding Checkout & Dashboard Banner - COMPLETE
+
+- [x] Paid-tier users redirected to Stripe Checkout after onboarding
+- [x] Free-tier users go to dashboard as before
+- [x] Dashboard subscription banner (free/trial/urgent/expired states)
+- [x] Subscription status shared via Inertia props (`has_active_subscription`, `on_trial`, `trial_days_remaining`)
+- [x] 15 new tests (redirect assertions, prop assertions)
+
+### Phase 8c: Booking Payments (TODO)
+
 - [ ] Booking deposits (Stripe Payment Intents, refunds)
 - [ ] Transaction fees (2.5% platform fee, Stripe Connect)
 

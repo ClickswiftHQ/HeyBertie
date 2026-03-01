@@ -1,3 +1,4 @@
+import { Link, usePage } from '@inertiajs/react';
 import {
     CalendarPlus,
     ListChecks,
@@ -7,6 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export function QuickActions() {
+    const { currentBusiness } = usePage().props;
+    const handle = currentBusiness?.handle;
+
     return (
         <Card>
             <CardHeader>
@@ -16,10 +20,12 @@ export function QuickActions() {
                 <Button
                     variant="outline"
                     className="w-full justify-start"
-                    disabled
+                    asChild
                 >
-                    <CalendarPlus className="mr-2 size-4" />
-                    New Booking
+                    <Link href={`/${handle}/calendar`}>
+                        <CalendarPlus className="mr-2 size-4" />
+                        New Booking
+                    </Link>
                 </Button>
                 <Button
                     variant="outline"
@@ -32,10 +38,12 @@ export function QuickActions() {
                 <Button
                     variant="outline"
                     className="w-full justify-start"
-                    disabled
+                    asChild
                 >
-                    <ListChecks className="mr-2 size-4" />
-                    Manage Services
+                    <Link href={`/${handle}/services`}>
+                        <ListChecks className="mr-2 size-4" />
+                        Manage Services
+                    </Link>
                 </Button>
             </CardContent>
         </Card>
