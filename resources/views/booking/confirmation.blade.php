@@ -90,6 +90,34 @@
                 <span class="font-medium text-gray-900">Total</span>
                 <span class="text-lg font-semibold text-gray-900">&pound;{{ number_format((float) $booking->price, 2) }}</span>
             </div>
+
+            {{-- Deposit status --}}
+            @if ((float) $booking->deposit_amount > 0)
+                <div class="mt-4 rounded-lg border p-3 {{ $booking->deposit_paid ? 'border-green-200 bg-green-50' : 'border-amber-200 bg-amber-50' }}">
+                    @if ($booking->deposit_paid)
+                        <div class="flex items-center gap-2">
+                            <svg class="size-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                            </svg>
+                            <span class="text-sm font-medium text-green-800">Deposit paid: &pound;{{ number_format((float) $booking->deposit_amount, 2) }}</span>
+                        </div>
+                        @php
+                            $remaining = (float) $booking->price - (float) $booking->deposit_amount;
+                        @endphp
+                        @if ($remaining > 0)
+                            <p class="mt-1 ml-7 text-xs text-green-700">Remaining balance of &pound;{{ number_format($remaining, 2) }} due on the day</p>
+                        @endif
+                    @elseif ($booking->payment_status === 'awaiting_deposit')
+                        <div class="flex items-center gap-2">
+                            <svg class="size-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+                            </svg>
+                            <span class="text-sm font-medium text-amber-800">Deposit pending: &pound;{{ number_format((float) $booking->deposit_amount, 2) }}</span>
+                        </div>
+                        <p class="mt-1 ml-7 text-xs text-amber-700">Your deposit payment has not been completed yet.</p>
+                    @endif
+                </div>
+            @endif
         </div>
 
         {{-- Actions --}}

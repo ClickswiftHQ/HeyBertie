@@ -26,6 +26,7 @@
             preselectedServiceIds: {{ Js::from($preselectedServiceIds) }},
             locationId: {{ $location->id }},
             breeds: {{ Js::from($breeds) }},
+            depositConfig: {{ Js::from($depositConfig) }},
             storeUrl: '{{ route('booking.store', [$business->handle, $location->slug]) }}',
             availableDatesUrl: '{{ route('api.booking.available-dates', $location->id) }}',
             timeSlotsUrl: '{{ route('api.booking.time-slots', $location->id) }}',
@@ -106,6 +107,7 @@
                         &middot; <span x-text="formatDuration(totalDuration)"></span>
                     </p>
                     <p class="text-xs font-medium text-gray-900" x-text="'£' + totalPrice.toFixed(2)"></p>
+                    <p x-show="depositAmount > 0" class="text-xs text-gray-500" x-text="'Deposit: £' + depositAmount.toFixed(2)"></p>
                 </div>
                 <button
                     @click="nextStep()"
@@ -130,6 +132,7 @@
                 availableDatesUrl: config.availableDatesUrl,
                 timeSlotsUrl: config.timeSlotsUrl,
                 csrfToken: config.csrfToken,
+                depositConfig: config.depositConfig,
 
                 // State
                 currentStep: 'services',
@@ -178,6 +181,18 @@
 
                 get totalPrice() {
                     return this.selectedServices.reduce((sum, s) => sum + (s.price || 0), 0);
+                },
+
+                get depositAmount() {
+                    if (!this.depositConfig.enabled) return 0;
+                    if (this.depositConfig.type === 'percentage') {
+                        return Math.round(this.totalPrice * this.depositConfig.percentage) / 100;
+                    }
+                    return Math.min(this.depositConfig.fixed_amount, this.totalPrice);
+                },
+
+                get remainingBalance() {
+                    return Math.max(0, this.totalPrice - this.depositAmount);
                 },
 
                 get canContinue() {
@@ -336,7 +351,11 @@
                         const data = await res.json();
 
                         if (data.success) {
-                            window.location.href = data.redirect;
+                            if (data.requires_payment && data.checkout_url) {
+                                window.location.href = data.checkout_url;
+                            } else {
+                                window.location.href = data.redirect;
+                            }
                         } else {
                             this.submitError = data.message || 'Something went wrong. Please try again.';
                         }

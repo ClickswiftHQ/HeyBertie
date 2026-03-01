@@ -3,6 +3,7 @@
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\BreedSuggestController;
 use App\Http\Controllers\BusinessController;
+use App\Http\Controllers\ConnectWebhookController;
 use App\Http\Controllers\CustomerBookingController;
 use App\Http\Controllers\Dashboard\AnalyticsController;
 use App\Http\Controllers\Dashboard\AvailabilityController;
@@ -11,6 +12,7 @@ use App\Http\Controllers\Dashboard\CustomerController;
 use App\Http\Controllers\Dashboard\CustomerSearchController;
 use App\Http\Controllers\Dashboard\DashboardController;
 use App\Http\Controllers\Dashboard\ServiceController;
+use App\Http\Controllers\Dashboard\StripeConnectController;
 use App\Http\Controllers\MarketingController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PostcodeLookupController;
@@ -80,6 +82,10 @@ Route::get('/@{handle}/{locationSlug}', fn (string $handle, string $locationSlug
 
 require __DIR__.'/settings.php';
 require __DIR__.'/statamic.php';
+
+// Stripe Connect webhook (separate from Cashier's /stripe/webhook)
+Route::post('/stripe/connect-webhook', ConnectWebhookController::class)
+    ->name('stripe.connect.webhook');
 
 // Postcode lookup API
 Route::get('/api/postcode-lookup/{postcode}', PostcodeLookupController::class)
@@ -188,6 +194,18 @@ Route::middleware(['auth', 'verified', 'onboarding.complete', 'business.manage']
             ->name('business.availability.update');
         Route::delete('/{handle}/availability/{availabilityBlock}', [AvailabilityController::class, 'destroy'])
             ->name('business.availability.destroy');
+
+        // Payments / Stripe Connect
+        Route::get('/{handle}/payments', [StripeConnectController::class, 'index'])
+            ->name('business.connect.index');
+        Route::post('/{handle}/payments/connect', [StripeConnectController::class, 'createAccount'])
+            ->name('business.connect.create');
+        Route::get('/{handle}/payments/refresh', [StripeConnectController::class, 'refresh'])
+            ->name('business.connect.refresh');
+        Route::post('/{handle}/payments/settings', [StripeConnectController::class, 'updateSettings'])
+            ->name('business.connect.settings');
+        Route::post('/{handle}/payments/dashboard', [StripeConnectController::class, 'dashboard'])
+            ->name('business.connect.dashboard');
 
         // Subscription management
         Route::get('/{handle}/subscription/checkout', [SubscriptionController::class, 'checkout'])

@@ -8,7 +8,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Stripe\Refund;
+use Stripe\Stripe;
 
 /**
  * @property int $id
@@ -279,6 +282,35 @@ class Booking extends Model
             'cancelled_at' => now(),
             'cancellation_reason' => $reason,
         ]);
+
+        $this->refundDeposit();
+    }
+
+    private function refundDeposit(): void
+    {
+        if (! $this->deposit_paid || ! $this->payment_intent_id) {
+            return;
+        }
+
+        try {
+            Stripe::setApiKey(config('cashier.secret'));
+
+            Refund::create([
+                'payment_intent' => $this->payment_intent_id,
+                'reverse_transfer' => true,
+                'refund_application_fee' => true,
+            ]);
+
+            $this->update(['payment_status' => 'refunded']);
+        } catch (\Throwable $e) {
+            Log::error('Failed to refund deposit', [
+                'booking_id' => $this->id,
+                'payment_intent_id' => $this->payment_intent_id,
+                'error' => $e->getMessage(),
+            ]);
+
+            report($e);
+        }
     }
 
     public function markAsCompleted(): void

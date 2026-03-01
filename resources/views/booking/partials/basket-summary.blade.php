@@ -33,6 +33,20 @@
                 <span class="text-sm font-medium text-gray-900">Total</span>
                 <span class="text-lg font-semibold text-gray-900" x-text="'£' + totalPrice.toFixed(2)"></span>
             </div>
+
+            {{-- Deposit info --}}
+            <template x-if="depositAmount > 0">
+                <div class="mt-3 space-y-1 border-t border-gray-200 pt-3">
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="font-medium text-gray-700">Deposit due now</span>
+                        <span class="font-semibold text-gray-900" x-text="'£' + depositAmount.toFixed(2)"></span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs text-gray-500">
+                        <span>Remaining due on the day</span>
+                        <span x-text="'£' + remainingBalance.toFixed(2)"></span>
+                    </div>
+                </div>
+            </template>
         </div>
 
         {{-- Date/time and staff (shown when selected) --}}

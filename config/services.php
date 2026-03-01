@@ -32,6 +32,10 @@ return [
         'api_key' => env('IDEAL_POSTCODES_API_KEY'),
     ],
 
+    'stripe' => [
+        'connect_webhook_secret' => env('STRIPE_CONNECT_WEBHOOK_SECRET'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

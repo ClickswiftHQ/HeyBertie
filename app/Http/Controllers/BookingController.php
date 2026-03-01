@@ -12,17 +12,21 @@ use App\Models\Location;
 use App\Models\StaffMember;
 use App\Services\AvailabilityService;
 use App\Services\BookingService;
+use App\Services\DepositCalculator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use Illuminate\View\View;
+use Stripe\Checkout\Session as StripeCheckoutSession;
+use Stripe\Stripe;
 
 class BookingController extends Controller
 {
     public function __construct(
         private AvailabilityService $availabilityService,
         private BookingService $bookingService,
+        private DepositCalculator $depositCalculator,
     ) {}
 
     public function show(string $handle, string $locationSlug, Request $request): View
@@ -60,6 +64,23 @@ class BookingController extends Controller
             ])
             ->values();
 
+        $depositConfig = [
+            'enabled' => false,
+            'type' => 'fixed',
+            'fixed_amount' => 0,
+            'percentage' => 0,
+        ];
+
+        if ($business->canAcceptPayments()) {
+            $settings = $business->settings ?? [];
+            $depositConfig = [
+                'enabled' => $settings['deposits_enabled'] ?? false,
+                'type' => $settings['deposit_type'] ?? 'fixed',
+                'fixed_amount' => ($settings['deposit_fixed_amount'] ?? 0) / 100,
+                'percentage' => $settings['deposit_percentage'] ?? 0,
+            ];
+        }
+
         return view('booking.show', [
             'business' => $business,
             'location' => $location,
@@ -68,6 +89,7 @@ class BookingController extends Controller
             'staffSelectionEnabled' => $staffSelectionEnabled,
             'preselectedServiceIds' => array_map('intval', (array) $preselectedServiceIds),
             'breeds' => $breeds,
+            'depositConfig' => $depositConfig,
         ]);
     }
 
@@ -93,34 +115,97 @@ class BookingController extends Controller
                 'notes' => $request->validated('notes'),
             ]);
 
-            $booking->load(['location', 'business.owner', 'customer', 'staffMember']);
+            $bookingTotalPence = (int) round((float) $booking->price * 100);
+            $depositAmount = $this->depositCalculator->calculateDeposit($business, $bookingTotalPence);
 
-            try {
-                Mail::to($booking->customer->email)->send(new BookingConfirmation($booking));
-
-                $businessEmail = $booking->location->email
-                    ?? $booking->business->email
-                    ?? $booking->business->owner->email;
-                Mail::to($businessEmail)->send(new NewBookingNotification($booking));
-            } catch (\Throwable $e) {
-                report($e);
+            if ($depositAmount > 0) {
+                return $this->handleDepositBooking($booking, $business, $handle, $locationSlug, $depositAmount);
             }
 
-            return response()->json([
-                'success' => true,
-                'booking_reference' => $booking->booking_reference,
-                'redirect' => route('booking.confirmation', [
-                    'handle' => $handle,
-                    'locationSlug' => $locationSlug,
-                    'ref' => $booking->booking_reference,
-                ]),
-            ]);
+            return $this->handleFreeBooking($booking, $handle, $locationSlug);
         } catch (\RuntimeException $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 409);
         }
+    }
+
+    private function handleFreeBooking(Booking $booking, string $handle, string $locationSlug): JsonResponse
+    {
+        $booking->load(['location', 'business.owner', 'customer', 'staffMember']);
+
+        try {
+            Mail::to($booking->customer->email)->send(new BookingConfirmation($booking));
+
+            $businessEmail = $booking->location->email
+                ?? $booking->business->email
+                ?? $booking->business->owner->email;
+            Mail::to($businessEmail)->send(new NewBookingNotification($booking));
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return response()->json([
+            'success' => true,
+            'booking_reference' => $booking->booking_reference,
+            'requires_payment' => false,
+            'redirect' => route('booking.confirmation', [
+                'handle' => $handle,
+                'locationSlug' => $locationSlug,
+                'ref' => $booking->booking_reference,
+            ]),
+        ]);
+    }
+
+    private function handleDepositBooking(Booking $booking, Business $business, string $handle, string $locationSlug, int $depositAmountPence): JsonResponse
+    {
+        $platformFeePence = $this->depositCalculator->calculatePlatformFee($depositAmountPence);
+
+        $booking->update([
+            'deposit_amount' => $depositAmountPence / 100,
+            'payment_status' => 'awaiting_deposit',
+        ]);
+
+        Stripe::setApiKey(config('cashier.secret'));
+
+        $session = StripeCheckoutSession::create([
+            'mode' => 'payment',
+            'line_items' => [[
+                'price_data' => [
+                    'currency' => 'gbp',
+                    'product_data' => ['name' => "Deposit — {$booking->booking_reference}"],
+                    'unit_amount' => $depositAmountPence,
+                ],
+                'quantity' => 1,
+            ]],
+            'payment_intent_data' => [
+                'application_fee_amount' => $platformFeePence,
+                'transfer_data' => [
+                    'destination' => $business->stripe_connect_id,
+                ],
+            ],
+            'success_url' => route('booking.confirmation', [
+                'handle' => $handle,
+                'locationSlug' => $locationSlug,
+                'ref' => $booking->booking_reference,
+            ]),
+            'cancel_url' => route('booking.show', [
+                'handle' => $handle,
+                'locationSlug' => $locationSlug,
+            ]),
+            'metadata' => [
+                'booking_id' => $booking->id,
+                'booking_reference' => $booking->booking_reference,
+            ],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'booking_reference' => $booking->booking_reference,
+            'requires_payment' => true,
+            'checkout_url' => $session->url,
+        ]);
     }
 
     public function confirmation(string $handle, string $locationSlug, Request $request): View

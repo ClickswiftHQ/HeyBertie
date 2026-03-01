@@ -2,6 +2,7 @@ import { usePage } from '@inertiajs/react';
 import {
     Calendar,
     Clock,
+    CreditCard,
     LayoutGrid,
     ListChecks,
     TrendingUp,
@@ -53,6 +54,11 @@ export function AppSidebar() {
                   title: 'Analytics',
                   href: `/${handle}/analytics`,
                   icon: TrendingUp,
+              },
+              {
+                  title: 'Payments',
+                  href: `/${handle}/payments`,
+                  icon: CreditCard,
               },
           ]
         : [];

@@ -206,3 +206,37 @@ Existing `STRIPE_KEY` and `STRIPE_SECRET` reused for Connect API calls.
 2. Set Connect webhook URL: `{APP_URL}/stripe/connect-webhook`
 3. Subscribe to events: `account.updated`, `checkout.session.completed`
 4. Local dev: `stripe listen --forward-to heybertie.test/stripe/connect-webhook`
+
+---
+
+## Phase 8d: Embedded Stripe Connect Onboarding (Future)
+
+### Context
+
+Currently, businesses are redirected to Stripe's hosted onboarding page to set up payments and to Stripe's Express dashboard to manage their payment details. This works but takes users away from HeyBertie. Stripe offers embedded UI components that render inside our own pages, keeping users on-site for the entire flow.
+
+### What This Replaces
+
+- The external redirect to Stripe onboarding (Set Up Payments / Continue Setup)
+- The external redirect to Stripe Express dashboard (Manage Payment Details)
+
+### Approach
+
+Use **Stripe Connect Embedded Components** (Account Onboarding Element + Account Management Element):
+
+1. **Onboarding** — embed the Connect Onboarding component on the payments page. The business fills in their details without leaving HeyBertie. Stripe handles KYC/compliance behind the scenes.
+2. **Account management** — embed the Connect Account Management component so businesses can update bank details, view payout history, manage tax info, and more — all within the dashboard.
+
+### Technical Requirements
+
+- Stripe Connect.js library loaded on the frontend
+- Server-side: create an Account Session via `\Stripe\AccountSession::create()` to generate a client secret
+- Frontend: render `<stripe-connect-onboarding>` and `<stripe-connect-account-management>` web components
+- Remove the redirect-based flow and `RedirectModal` component
+- Remove the `dashboard()` method and its route
+
+### Benefits
+
+- Users never leave HeyBertie — smoother, more professional experience
+- Both onboarding and account management handled by the same toolkit
+- Stripe still handles all compliance/KYC — no extra regulatory burden on us

@@ -24,6 +24,8 @@ use Laravel\Cashier\Billable;
  * @property string|null $website
  * @property \Carbon\CarbonImmutable|null $trial_ends_at
  * @property string|null $stripe_customer_id
+ * @property string|null $stripe_connect_id
+ * @property bool $stripe_connect_onboarding_complete
  * @property string|null $stripe_subscription_id
  * @property string $verification_status
  * @property string|null $verification_notes
@@ -125,6 +127,8 @@ class Business extends Model
         'subscription_status_id',
         'trial_ends_at',
         'stripe_id',
+        'stripe_connect_id',
+        'stripe_connect_onboarding_complete',
         'pm_type',
         'pm_last_four',
         'verification_status',
@@ -146,6 +150,7 @@ class Business extends Model
             'settings' => 'array',
             'onboarding' => 'array',
             'onboarding_completed' => 'boolean',
+            'stripe_connect_onboarding_complete' => 'boolean',
             'verified_at' => 'datetime',
             'trial_ends_at' => 'datetime',
             'is_active' => 'boolean',
@@ -354,6 +359,16 @@ class Business extends Model
     public function canAcceptBookings(): bool
     {
         return $this->subscriptionTier->slug !== 'free' && $this->hasActiveSubscription();
+    }
+
+    public function hasCompletedConnectOnboarding(): bool
+    {
+        return $this->stripe_connect_onboarding_complete && $this->stripe_connect_id !== null;
+    }
+
+    public function canAcceptPayments(): bool
+    {
+        return $this->hasCompletedConnectOnboarding() && $this->hasActiveSubscription();
     }
 
     /**
