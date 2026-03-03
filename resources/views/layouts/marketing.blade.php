@@ -37,7 +37,7 @@
                 <nav class="hidden items-center gap-8 md:flex">
                     <a href="{{ route('marketing.for-dog-groomers') }}" class="text-sm font-medium text-gray-600 hover:text-gray-900">For Groomers</a>
                     <a href="#" class="text-sm font-medium text-gray-600 hover:text-gray-900">Pricing</a>
-                    <a href="#" class="text-sm font-medium text-gray-600 hover:text-gray-900">Help</a>
+                    <a href="/help" class="text-sm font-medium text-gray-600 hover:text-gray-900">Help</a>
                 </nav>
 
                 {{-- Desktop Auth --}}
@@ -96,7 +96,7 @@
                 <div class="space-y-1 px-4 py-4">
                     <a href="{{ route('marketing.for-dog-groomers') }}" class="block rounded-lg px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900">For Groomers</a>
                     <a href="#" class="block rounded-lg px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900">Pricing</a>
-                    <a href="#" class="block rounded-lg px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900">Help</a>
+                    <a href="/help" class="block rounded-lg px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900">Help</a>
                 </div>
                 <div class="border-t border-gray-200 px-4 py-4">
                     @guest
@@ -149,7 +149,7 @@
                         <ul class="mt-4 space-y-3">
                             <li><a href="/blog" class="text-sm text-gray-600 hover:text-gray-900">Blog</a></li>
                             <li><a href="/guides" class="text-sm text-gray-600 hover:text-gray-900">Guides</a></li>
-                            <li><a href="#" class="text-sm text-gray-600 hover:text-gray-900">Help Centre</a></li>
+                            <li><a href="/help" class="text-sm text-gray-600 hover:text-gray-900">Help Centre</a></li>
                             <li><a href="#" class="text-sm text-gray-600 hover:text-gray-900">FAQs</a></li>
                         </ul>
                     </div>

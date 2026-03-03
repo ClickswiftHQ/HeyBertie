@@ -1,0 +1,12 @@
+title: 'Help Centre'
+template: help/show
+layout: false
+revisions: false
+sort_dir: asc
+sort_by: order
+orderable: true
+route: '/help/{slug}'
+taxonomies:
+  - audience
+  - categories
+  - tags

@@ -15,6 +15,12 @@ Route::statamic('/guides', 'guides.index', [
     'layout' => false,
 ]);
 
+// Help Centre (public)
+Route::statamic('/help', 'help.index', [
+    'title' => 'Help Centre',
+    'layout' => false,
+]);
+
 // Knowledge Base (admin only)
 Route::statamic('/knowledge-base', 'knowledge_base.index', [
     'title' => 'Knowledge Base',
