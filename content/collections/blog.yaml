@@ -1,0 +1,13 @@
+title: Blog
+template: blog/show
+layout: false
+revisions: false
+sort_dir: desc
+date: true
+date_behavior:
+  past: public
+  future: private
+route: '/blog/{slug}'
+taxonomies:
+  - categories
+  - tags

@@ -1,0 +1,19 @@
+title: Category
+tabs:
+  main:
+    display: Main
+    sections:
+      -
+        fields:
+          -
+            handle: title
+            field:
+              type: text
+              required: true
+              display: Title
+          -
+            handle: description
+            field:
+              type: textarea
+              display: Description
+              character_limit: 160

@@ -147,7 +147,8 @@
                     <div>
                         <h3 class="text-sm font-semibold uppercase tracking-wider text-gray-900">Resources</h3>
                         <ul class="mt-4 space-y-3">
-                            <li><a href="#" class="text-sm text-gray-600 hover:text-gray-900">Blog</a></li>
+                            <li><a href="/blog" class="text-sm text-gray-600 hover:text-gray-900">Blog</a></li>
+                            <li><a href="/guides" class="text-sm text-gray-600 hover:text-gray-900">Guides</a></li>
                             <li><a href="#" class="text-sm text-gray-600 hover:text-gray-900">Help Centre</a></li>
                             <li><a href="#" class="text-sm text-gray-600 hover:text-gray-900">FAQs</a></li>
                         </ul>

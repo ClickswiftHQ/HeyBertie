@@ -25,6 +25,7 @@ class ValidHandle implements ValidationRule
         'about',
         'contact',
         'blog',
+        'guides',
         'pricing',
         'join',
         'onboarding',

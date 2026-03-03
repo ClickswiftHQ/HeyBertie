@@ -3,6 +3,19 @@
 use App\Http\Middleware\EnsureSuperAdmin;
 use Illuminate\Support\Facades\Route;
 
+// Blog (public)
+Route::statamic('/blog', 'blog.index', [
+    'title' => 'Blog',
+    'layout' => false,
+]);
+
+// Guides (public)
+Route::statamic('/guides', 'guides.index', [
+    'title' => 'Guides',
+    'layout' => false,
+]);
+
+// Knowledge Base (admin only)
 Route::statamic('/knowledge-base', 'knowledge_base.index', [
     'title' => 'Knowledge Base',
     'layout' => 'layout',
