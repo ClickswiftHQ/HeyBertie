@@ -21,12 +21,8 @@ Route::statamic('/help', 'help.index', [
     'layout' => false,
 ]);
 
-// Knowledge Base (admin only)
-Route::statamic('/knowledge-base', 'knowledge_base.index', [
-    'title' => 'Knowledge Base',
-    'layout' => 'layout',
-])->middleware(['auth', EnsureSuperAdmin::class]);
-
-Route::statamic('/knowledge-base/{slug}', 'knowledge_base.show', [
-    'layout' => 'layout',
+// Docs (super admin only)
+Route::statamic('/docs', 'docs.index', [
+    'title' => 'Docs',
+    'layout' => false,
 ])->middleware(['auth', EnsureSuperAdmin::class]);

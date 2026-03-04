@@ -1,0 +1,59 @@
+title: Article
+tabs:
+  main:
+    display: Main
+    sections:
+      -
+        fields:
+          -
+            handle: title
+            field:
+              type: text
+              required: true
+              display: Title
+          -
+            handle: content
+            field:
+              type: bard
+              display: Content
+              save_html: true
+              buttons:
+                - h2
+                - h3
+                - bold
+                - italic
+                - unorderedlist
+                - orderedlist
+                - removeformat
+                - quote
+                - anchor
+                - image
+                - horizontalrule
+          -
+            handle: excerpt
+            field:
+              type: textarea
+              display: Excerpt
+              character_limit: 300
+  taxonomies:
+    display: Taxonomies
+    sections:
+      -
+        fields:
+          -
+            handle: categories
+            field:
+              type: terms
+              display: Categories
+              taxonomies:
+                - categories
+              max_items: 1
+              mode: select
+          -
+            handle: tags
+            field:
+              type: terms
+              display: Tags
+              taxonomies:
+                - tags
+              mode: select

@@ -1,0 +1,13 @@
+title: Docs
+template: docs/show
+layout: false
+revisions: false
+sort_dir: asc
+sort_by: order
+orderable: true
+route: '/docs/{slug}'
+inject:
+  protect: super_admin
+taxonomies:
+  - categories
+  - tags

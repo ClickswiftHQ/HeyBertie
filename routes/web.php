@@ -130,7 +130,7 @@ Route::get('/api/booking/{location}/time-slots', [BookingController::class, 'tim
     ->middleware('throttle:60,1');
 
 // Booking flow (must be before vanity handle routes)
-Route::where(['handle' => '(?!(?:cp|blog|guides|help)(?=/|$))[a-z0-9][a-z0-9-]*'])->group(function () {
+Route::where(['handle' => '(?!(?:cp|blog|guides|help|docs)(?=/|$))[a-z0-9][a-z0-9-]*'])->group(function () {
     Route::get('/{handle}/{locationSlug}/book', [BookingController::class, 'show'])->name('booking.show');
     Route::post('/{handle}/{locationSlug}/book', [BookingController::class, 'store'])->name('booking.store');
     Route::get('/{handle}/{locationSlug}/book/confirmation', [BookingController::class, 'confirmation'])->name('booking.confirmation');
@@ -138,7 +138,7 @@ Route::where(['handle' => '(?!(?:cp|blog|guides|help)(?=/|$))[a-z0-9][a-z0-9-]*'
 
 // Business management routes (authenticated, handle-scoped)
 Route::middleware(['auth', 'verified', 'onboarding.complete', 'business.manage'])
-    ->where(['handle' => '(?!(?:cp|blog|guides|help)(?=/|$))[a-z0-9][a-z0-9-]*'])
+    ->where(['handle' => '(?!(?:cp|blog|guides|help|docs)(?=/|$))[a-z0-9][a-z0-9-]*'])
     ->group(function () {
         Route::get('/{handle}/dashboard', DashboardController::class)
             ->name('business.dashboard');
@@ -223,8 +223,8 @@ Route::middleware(['auth', 'verified', 'onboarding.complete', 'business.manage']
 Route::middleware('handle.redirect')->group(function () {
     Route::get('/{handle}', [BusinessController::class, 'show'])
         ->name('business.show')
-        ->where('handle', '(?!(?:cp|blog|guides|help)(?=/|$))[a-z0-9][a-z0-9-]*');
+        ->where('handle', '(?!(?:cp|blog|guides|help|docs)(?=/|$))[a-z0-9][a-z0-9-]*');
     Route::get('/{handle}/{locationSlug}', [BusinessController::class, 'showLocation'])
         ->name('business.location')
-        ->where('handle', '(?!(?:cp|blog|guides|help)(?=/|$))[a-z0-9][a-z0-9-]*');
+        ->where('handle', '(?!(?:cp|blog|guides|help|docs)(?=/|$))[a-z0-9][a-z0-9-]*');
 });
