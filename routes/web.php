@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminBusinessController;
+use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\BreedSuggestController;
 use App\Http\Controllers\BusinessController;
@@ -8,6 +11,7 @@ use App\Http\Controllers\CustomerBookingController;
 use App\Http\Controllers\Dashboard\AnalyticsController;
 use App\Http\Controllers\Dashboard\AvailabilityController;
 use App\Http\Controllers\Dashboard\BookingManagementController;
+use App\Http\Controllers\Dashboard\BusinessSettingsController;
 use App\Http\Controllers\Dashboard\CustomerController;
 use App\Http\Controllers\Dashboard\CustomerSearchController;
 use App\Http\Controllers\Dashboard\DashboardController;
@@ -19,6 +23,7 @@ use App\Http\Controllers\PostcodeLookupController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SearchSuggestController;
 use App\Http\Controllers\SubscriptionController;
+use App\Http\Middleware\EnsureSuperAdmin;
 use App\Models\Business;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -83,6 +88,36 @@ Route::get('/@{handle}/{locationSlug}', fn (string $handle, string $locationSlug
 require __DIR__.'/settings.php';
 require __DIR__.'/statamic.php';
 
+// Admin dashboard (super admin only)
+Route::middleware(['auth', 'verified', EnsureSuperAdmin::class])
+    ->prefix('admin')
+    ->name('admin.')
+    ->group(function () {
+        Route::get('/', AdminDashboardController::class)->name('dashboard');
+
+        // Business management
+        Route::get('/businesses', [AdminBusinessController::class, 'index'])->name('businesses.index');
+        Route::get('/businesses/{business}', [AdminBusinessController::class, 'show'])->name('businesses.show');
+        Route::post('/businesses/{business}/verify', [AdminBusinessController::class, 'verify'])->name('businesses.verify');
+        Route::post('/businesses/{business}/suspend', [AdminBusinessController::class, 'suspend'])->name('businesses.suspend');
+        Route::patch('/businesses/{business}/subscription', [AdminBusinessController::class, 'updateSubscription'])->name('businesses.update-subscription');
+        Route::patch('/businesses/{business}/trial', [AdminBusinessController::class, 'updateTrial'])->name('businesses.update-trial');
+        Route::patch('/businesses/{business}/handle', [AdminBusinessController::class, 'updateHandle'])->name('businesses.update-handle');
+        Route::patch('/businesses/{business}/settings', [AdminBusinessController::class, 'updateSettings'])->name('businesses.update-settings');
+        Route::post('/businesses/{business}/bookings/{booking}/cancel', [AdminBusinessController::class, 'cancelBooking'])->name('businesses.cancel-booking');
+
+        // User management
+        Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
+        Route::get('/users/{user}', [AdminUserController::class, 'show'])->name('users.show');
+        Route::post('/users/{user}/impersonate', [AdminUserController::class, 'impersonate'])->name('users.impersonate');
+        Route::post('/users/{user}/reset-password', [AdminUserController::class, 'resetPassword'])->name('users.reset-password');
+    });
+
+// Leave impersonation (outside admin group — accessible by the impersonated user)
+Route::post('/admin/impersonate/leave', [AdminUserController::class, 'leaveImpersonation'])
+    ->middleware('auth')
+    ->name('admin.impersonate.leave');
+
 // Stripe Connect webhook (separate from Cashier's /stripe/webhook)
 Route::post('/stripe/connect-webhook', ConnectWebhookController::class)
     ->name('stripe.connect.webhook');
@@ -130,7 +165,7 @@ Route::get('/api/booking/{location}/time-slots', [BookingController::class, 'tim
     ->middleware('throttle:60,1');
 
 // Booking flow (must be before vanity handle routes)
-Route::where(['handle' => '(?!(?:cp|blog|guides|help|docs)(?=/|$))[a-z0-9][a-z0-9-]*'])->group(function () {
+Route::where(['handle' => '(?!(?:cp|blog|guides|help|docs|admin)(?=/|$))[a-z0-9][a-z0-9-]*'])->group(function () {
     Route::get('/{handle}/{locationSlug}/book', [BookingController::class, 'show'])->name('booking.show');
     Route::post('/{handle}/{locationSlug}/book', [BookingController::class, 'store'])->name('booking.store');
     Route::get('/{handle}/{locationSlug}/book/confirmation', [BookingController::class, 'confirmation'])->name('booking.confirmation');
@@ -138,7 +173,7 @@ Route::where(['handle' => '(?!(?:cp|blog|guides|help|docs)(?=/|$))[a-z0-9][a-z0-
 
 // Business management routes (authenticated, handle-scoped)
 Route::middleware(['auth', 'verified', 'onboarding.complete', 'business.manage'])
-    ->where(['handle' => '(?!(?:cp|blog|guides|help|docs)(?=/|$))[a-z0-9][a-z0-9-]*'])
+    ->where(['handle' => '(?!(?:cp|blog|guides|help|docs|admin)(?=/|$))[a-z0-9][a-z0-9-]*'])
     ->group(function () {
         Route::get('/{handle}/dashboard', DashboardController::class)
             ->name('business.dashboard');
@@ -216,6 +251,12 @@ Route::middleware(['auth', 'verified', 'onboarding.complete', 'business.manage']
             ->name('subscription.cancelled');
         Route::get('/{handle}/billing', [SubscriptionController::class, 'billingPortal'])
             ->name('subscription.billing');
+
+        // Business settings
+        Route::get('/{handle}/settings', [BusinessSettingsController::class, 'index'])
+            ->name('business.settings.index');
+        Route::patch('/{handle}/settings', [BusinessSettingsController::class, 'update'])
+            ->name('business.settings.update');
     });
 
 // Vanity handle routes — MUST be LAST (catch-all-like pattern)
@@ -223,8 +264,8 @@ Route::middleware(['auth', 'verified', 'onboarding.complete', 'business.manage']
 Route::middleware('handle.redirect')->group(function () {
     Route::get('/{handle}', [BusinessController::class, 'show'])
         ->name('business.show')
-        ->where('handle', '(?!(?:cp|blog|guides|help|docs)(?=/|$))[a-z0-9][a-z0-9-]*');
+        ->where('handle', '(?!(?:cp|blog|guides|help|docs|admin)(?=/|$))[a-z0-9][a-z0-9-]*');
     Route::get('/{handle}/{locationSlug}', [BusinessController::class, 'showLocation'])
         ->name('business.location')
-        ->where('handle', '(?!(?:cp|blog|guides|help|docs)(?=/|$))[a-z0-9][a-z0-9-]*');
+        ->where('handle', '(?!(?:cp|blog|guides|help|docs|admin)(?=/|$))[a-z0-9][a-z0-9-]*');
 });

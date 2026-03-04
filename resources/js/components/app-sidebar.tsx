@@ -5,6 +5,7 @@ import {
     CreditCard,
     LayoutGrid,
     ListChecks,
+    Settings,
     TrendingUp,
     Users,
 } from 'lucide-react';
@@ -59,6 +60,11 @@ export function AppSidebar() {
                   title: 'Payments',
                   href: `/${handle}/payments`,
                   icon: CreditCard,
+              },
+              {
+                  title: 'Settings',
+                  href: `/${handle}/settings`,
+                  icon: Settings,
               },
           ]
         : [];

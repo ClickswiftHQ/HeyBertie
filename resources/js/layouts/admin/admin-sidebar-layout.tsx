@@ -1,12 +1,12 @@
 import { usePage } from '@inertiajs/react';
+import { AdminSidebar } from '@/components/admin/admin-sidebar';
 import { ImpersonationBanner } from '@/components/admin/impersonation-banner';
 import { AppContent } from '@/components/app-content';
 import { AppShell } from '@/components/app-shell';
-import { AppSidebar } from '@/components/app-sidebar';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
 import type { AppLayoutProps } from '@/types';
 
-export default function AppSidebarLayout({
+export default function AdminSidebarLayout({
     children,
     breadcrumbs = [],
 }: AppLayoutProps) {
@@ -16,7 +16,7 @@ export default function AppSidebarLayout({
 
     return (
         <AppShell variant="sidebar">
-            <AppSidebar />
+            <AdminSidebar />
             <AppContent variant="sidebar" className="overflow-x-hidden">
                 {impersonating && (
                     <ImpersonationBanner fromName={impersonating.from_name} />

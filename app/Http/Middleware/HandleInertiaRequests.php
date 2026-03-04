@@ -43,6 +43,12 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'impersonating' => $request->session()->has('impersonating_from')
+                ? [
+                    'from_id' => $request->session()->get('impersonating_from'),
+                    'from_name' => $request->session()->get('impersonating_from_name'),
+                ]
+                : null,
             'currentBusiness' => fn () => $this->getCurrentBusiness($request),
             'userBusinesses' => fn () => $this->getUserBusinesses($request),
         ];
